@@ -1,0 +1,3313 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dungeons Deep — ASCII Roguelike</title>
+  <style>
+  .skip-btn{
+    margin-left: 12px;
+    width: 40px;
+    height: 32px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,.18);
+    background: rgba(255,255,255,.04);
+    color: rgba(230,240,255,.95);
+    cursor: pointer;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+  }
+  .skip-btn:hover{
+    background: rgba(255,255,255,.06);
+    border-color: rgba(255,255,255,.24);
+  }
+
+
+    #restartBtn.btn-lose{
+      border-color: rgba(220,50,50,.9);
+      color: #ffd0d0;
+      box-shadow: 0 0 0 1px rgba(220,50,50,.25), 0 0 18px rgba(220,50,50,.18);
+    }
+    #restartBtn.btn-win{
+      border-color: rgba(70,220,120,.9);
+      color: #d8ffe4;
+      box-shadow: 0 0 0 1px rgba(70,220,120,.22), 0 0 18px rgba(70,220,120,.14);
+    }
+.hud-debug{
+    margin-top: 6px;
+    padding: 4px 8px;
+    font-size: 11px;
+    opacity: 0.75;
+    border: 1px dashed rgba(255,255,255,.20);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    border-radius: 10px;
+  }
+:root { color-scheme: dark; }
+    body{
+      margin:0;
+      background:#0b0f12;
+      color:#cfd8dc;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      display:flex;
+      justify-content:center;
+    }
+    .wrap{ width:min(1100px, 98vw); padding:12px; }
+
+    .panel{
+      background:#0f151a;
+      border:1px solid #1b2a33;
+      border-radius:12px;
+      padding:10px 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+
+    /* === Compact full-width header band === */
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:8px;
+    }
+    .header{
+      width:100%;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:8px 10px; /* tighter */
+    }
+    .header-left{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .header-right{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex:0 0 auto;
+    }
+
+    /* HUD becomes a compact wide row of pills */
+    .hud{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px 10px;
+      align-items:center;
+      min-width:0;
+      font-size:12px;
+      line-height:1.1;
+    }
+    .hud .hud-item{
+      display:inline-flex;
+      align-items:baseline;
+      gap:6px;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid #2a3b45;
+      background:#0b1115;
+      white-space:nowrap;
+    }
+    .hud .title{
+      font-weight:800;
+      letter-spacing:.5px;
+      border-color:#355262;
+    }
+    .hud .muted{ opacity:.88; }
+    
+    /* Logo replaces the title pill */
+    .hud-item.title.hud-logo{
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+
+    .hud-logo img{
+        height: 38px;      /* tweak to taste */
+        width: auto;
+        display: block;
+    }
+
+    .controls{
+      font-size:12px;
+      opacity:.92;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 520px;
+    }
+
+    kbd{
+      border:1px solid #2a3b45; border-bottom-width:2px;
+      padding:0 6px; border-radius:6px; background:#0b1115;
+      font-size:12px;
+      display:inline-block;
+      margin:0 1px;
+    }
+    button{
+      background:#0b1115; color:#cfd8dc;
+      border:1px solid #2a3b45;
+      border-radius:10px;
+      padding:8px 10px;
+      cursor:pointer;
+      font-family:inherit;
+    }
+    button:hover{ border-color:#3c5664; }
+
+    .main{
+      display:grid;
+      grid-template-columns: 1fr 340px;
+      gap:10px;
+      align-items:start;
+    }
+    @media (max-width: 980px){
+      .main{ grid-template-columns: 1fr; }
+      .controls{ white-space:normal; max-width: 100%; }
+    }
+
+    #screen{
+      white-space:pre;
+      font-size:14px;
+      user-select:none;
+      overflow:auto;
+      /* more vertical room for map */
+      min-height: 325px;
+      max-height: 325px;
+      
+  		line-height:0.9;
+  		letter-spacing:0.2em;
+  		
+  		font-family:
+		    "JetBrains Mono",
+		    "Cascadia Mono",
+		    "Fira Code",
+		    Consolas,
+		    monospace;
+    }
+
+    .logline{ opacity:.92; }
+    .dim { opacity:.35; }
+
+    .legend h3, .log h3 { margin:0 0 8px 0; font-size:14px; }
+    .legend-grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:6px;
+      font-size:12px;
+    }
+    .legend-item{
+      display:flex;
+      gap:8px;
+      align-items:baseline;
+      padding:4px 6px;
+      border:1px solid #1b2a33;
+      border-radius:10px;
+      background:#0b1115;
+    }
+    .glyph{
+      min-width: 18px;
+      text-align:center;
+      font-weight:700;
+    }
+    .legend-note{
+      margin-top:8px;
+      font-size:11px;
+      opacity:.9;
+      border-top:1px solid #1b2a33;
+      padding-top:8px;
+      line-height:1.25;
+    }
+    .footer-note{
+      margin-top:10px;
+      font-size:12px;
+      opacity:.85;
+    }
+    .pill{
+      display:inline-block;
+      padding:2px 8px;
+      border-radius:999px;
+      border:1px solid #2a3b45;
+      background:#0b1115;
+      font-size:12px;
+      margin-left:6px;
+    }
+    .promptline{
+      margin-top:8px;
+      padding:8px 10px;
+      border:1px solid #2a3b45;
+      border-radius:12px;
+      background:#0b1115;
+      font-size:12px;
+    }
+
+    /* Effects as inline chips */
+    .effects{
+      display:inline-flex;
+      flex-wrap:wrap;
+      gap:6px;
+      align-items:center;
+      margin:0;
+    }
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid #2a3b45;
+      background:#0b1115;
+      font-size:12px;
+      white-space:nowrap;
+      opacity:.95;
+    }
+
+    /* Collapsible legend */
+    .legend-toggle{
+      width:100%;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      background:#0b1115;
+      color:#cfd8dc;
+      border:1px solid #2a3b45;
+      border-radius:10px;
+      padding:8px 10px;
+      cursor:pointer;
+      font-family:inherit;
+      font-size:13px;
+    }
+    .legend-toggle:hover{ border-color:#3c5664; }
+    .legend-body[data-collapsed="true"]{ display:none; }
+    .chev{
+      display:inline-block;
+      transition: transform 120ms ease;
+    }
+    .legend-toggle[aria-expanded="true"] .chev{ transform: rotate(180deg); }
+
+
+    /* Mute button (music) */
+    .mute-btn{
+      margin-left: 18px; /* not too close to Reset */
+      width: 44px;
+      height: 36px;
+      border-radius: 12px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-size:16px;
+    }
+    .mute-btn.is-muted{
+      opacity: .75;
+    }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="panel header">
+        <div class="header-left">
+          <div class="hud" id="hud"></div>
+          <div class="controls" title="Controls">
+            Move: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> & diagonals <kbd>Q</kbd><kbd>E</kbd><kbd>Z</kbd><kbd>C</kbd>
+            · Wait <kbd>.</kbd> · Descend <kbd>&gt;</kbd> · Heal/Drink <kbd>P</kbd> · Potions <kbd>0</kbd>/<kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd>/<kbd>4</kbd>
+            · Trader prompt: <kbd>Y</kbd>/<kbd>N</kbd> + <kbd>A</kbd>/<kbd>B</kbd>
+          </div>
+        </div>
+        <div class="header-right">
+          <button id="restartBtn">Reset</button>
+          <button id="muteBtn" class="mute-btn" title="Mute / unmute music" aria-pressed="false">🔊</button>
+          <button id="skipBtn" class="skip-btn" title="Skip current track" aria-label="Skip track">⏭</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="panel">
+        <div id="screen" aria-label="game screen"></div>
+        <div class="panel log" style="margin-top:10px;" id="log"></div>
+        <div class="promptline" id="prompt"></div>
+        <div class="footer-note">
+          Tips:
+          doors <span class="pill">#</span>/<span class="pill">/</span> block chokepoints until opened by bumping,
+          locked doors <span class="pill">X</span> need keys from chests <span class="pill">$</span> (or can be forced),
+          torches <span class="pill">t</span> restore sight (carry 2),
+          traders <span class="pill" style="border-color:#ffd166;color:#ffd166;">T</span> sell goods.
+        </div>
+      </div>
+
+      <div class="panel legend">
+        <button class="legend-toggle" id="legendToggle" aria-expanded="true">
+          <span><b>Legend</b></span>
+          <span class="chev">▾</span>
+        </button>
+        <div class="legend-body" id="legendBody" style="margin-top:10px;">
+          <div id="legend" class="legend-grid"></div>
+          <div class="legend-note" id="legendNote"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <audio id="bgm" src="dungeons deep.mp3" preload="auto"></audio>
+
+<script>
+(() => {
+  // ============================================================
+  // DUNGEONS DEEP — Drop-in HTML
+  // Key change (per request): keys are primarily stored in chests
+  // so opening a chest grants a "keychain" all at once.
+  // ============================================================
+
+  // ---------- CONFIG ----------
+  const DEBUG = false; // default ON: start with a full potion belt for testing
+
+  const MAP_W = 80, MAP_H = 28;
+  const VIEW_W = 60, VIEW_H = 18;
+
+  // Vision (torch system)
+  const VISION_DARK = 2;
+  const VISION_DEFAULT = 8;
+  const TORCH_CAP = 2;
+  const TORCH_BURN_MOVES = 40;
+  const TORCH_DIM_STEP_MOVES = 5;
+
+  const ROOM_ATTEMPTS = 140;
+  const ROOMS_MIN = 8, ROOMS_MAX = 14;
+  const ROOM_W = [5, 13], ROOM_H = [4, 9];
+
+  // Secret content tuning
+  const SECRET_ROOM_MIN = 1;
+  const SECRET_ROOM_MAX = 3;
+  const SECRET_REVEAL_CHANCE = 0.50;
+  const SECRET_SHORTCUT_CHANCE = 0.20;
+  const SECRET_TRAP_MULT = 2.2;
+  const SECRET_REWARD_MULT = 2;
+
+  // Trader tuning
+  const TRADER_SPAWN_CHANCE = 0.22;
+  const TRADER_POTION_COST = 12;
+  const TRADER_WEAPON_COST = 25;
+  const TRADER_WEAPON_ATK_BONUS = 1;
+
+  const POTION_CAP = 30;
+const DEFAULT_HEAL_POTIONS = 3; // starting healing potions (non-debug)
+  const KEY_CAP = 5;
+
+
+  // Vitality Shrines
+  const MAX_HP_CAP = 32;
+  const VITALITY_SHRINE_CHANCE = 0.40; // per level (max 1)
+  const SHRINE_BASE_GOLD_COST = 25;
+  const SHRINE_GOLD_PER_LEVEL = 2;
+  // Door tuning
+  const DOOR_CHANCE = 0.22;
+  const LOCKED_DOOR_CHANCE = 0.28;
+
+  // Locked-door safety valve
+  const LOCKED_DOOR_BREAKS_WITHOUT_KEY = true;
+  const LOCK_BREAK_DAMAGE = 2;
+
+  // Torches spawn “fairly liberally”
+  const TORCH_BASE_COUNT = 4;
+  const TORCH_PER_LEVEL_BONUS = 1;
+  const TORCH_BONUS_EVERY_LEVELS = 4;
+
+  // Potion tuning
+  const POTION_HEAL_RANGE = [6, 10];
+  const POISON_STEPS = 5;
+  const POISON_DMG_RANGE = [1, 2];
+  const INVIS_STEPS = 35;
+  const TRANSMUTE_STEPS = 20;
+  const INVINCIBLE_STEPS = 40;
+
+  // ---------- GLYPHS ----------
+  const TILE = {
+    ROCK: ' ',
+    FLOOR: '.',
+    CORR: ',',
+    DOOR_C: '#',
+    DOOR_O: '/',
+    LDOOR_C: 'X',
+    LDOOR_O: '/',
+    SD_C: 'S',
+    SD_O: 's',
+    DOWN: '>',
+    SDOWN: '»'
+  };
+
+  const ENT = {
+    PLAYER: '*',
+    POTION: '!',
+    CHEST: '$',
+    WEAPON: 'ƪ',
+    TRAP: '^',
+    TRADER: 'T',
+    TORCH: 't',
+
+    SHRINE: '¥',
+    GOBLIN: 'g',
+    ORC: 'o',
+    SNAKE: '~',
+    CUBE: 'O',
+    DRAGON: 'Ϡ',
+    CRAWLER: 'ƺ',
+    WALKER: 'Ѫ',
+    WRAITH: 'ϣ',
+    HORROR: 'Ɵ'
+  };
+
+  // Potion types
+  const POTION = {
+    HEAL: "heal",
+    POISON: "poison",
+    INVIS: "invis",
+    TRANSMUTE: "transmute",
+    INVINC: "invinc",
+    TELE: "tele"};
+
+  // ---------- COLORS ----------
+  const COL = {
+    fg: '#cfd8dc',
+    wall: '#9fb3bf',
+    floor: '#93a4ad',
+    corr: '#7f8f98',
+    door: '#ffd166',
+    locked: '#ffb703',
+    sdoor: '#c8b6ff',
+    stairs: '#4dd0e1',
+    shortcut: '#80cbc4',
+
+    chest: '#f6f740',
+    weapon: '#a7ffeb',
+    trap: '#ff5252',
+    torch: '#ffcf6b',
+
+    shrine: "#9be7ff",
+    potion_purple: '#ff6bd6',
+    potion_green:  '#68ff79',
+    potion_grey:   '#b0bec5',
+    potion_ochre:  '#d4a373',
+    potion_red:    '#ff4d4d',
+
+    monster: '#ff6b6b',
+    boss: '#ff8a65',
+    player: '#ffffff',
+    trader: '#ffd166',
+    dim: '#6b7b84',
+    rock: '#0b0f12'
+  };
+
+  const MONSTER_COLOR = {
+    [ENT.GOBLIN]: COL.monster,
+    [ENT.ORC]: COL.monster,
+    [ENT.SNAKE]: '#66ff66',
+    [ENT.CUBE]: '#55aaff',
+    [ENT.DRAGON]: '#ff4444',
+    [ENT.CRAWLER]: '#ffb347',
+    [ENT.WALKER]: '#f5f5f5',
+    [ENT.WRAITH]: '#bbaaff',
+    [ENT.HORROR]: COL.boss
+  };
+
+  const POTION_COLOR = {
+    [POTION.HEAL]: COL.potion_purple,
+    [POTION.POISON]: COL.potion_green,
+    [POTION.INVIS]: COL.potion_grey,
+    [POTION.TRANSMUTE]: COL.potion_ochre,
+    [POTION.INVINC]: COL.potion_red,
+    [POTION.TELE]: "#7f8cff"};
+
+  const POTION_NAME = {
+    [POTION.HEAL]: "Healing",
+    [POTION.POISON]: "Poison",
+    [POTION.INVIS]: "Invisibility",
+    [POTION.TRANSMUTE]: "Transmutation",
+    [POTION.INVINC]: "Invincibility",
+    [POTION.TELE]: "Teleportation"};
+
+  const GLYPH_REGISTRY = [
+    { glyph: ENT.PLAYER, name: "Player", color: COL.player },
+    { glyph: '+', name: "Wall +", color: COL.wall },
+    { glyph: '–', name: "Wall –", color: COL.wall },
+    { glyph: '|', name: "Wall |", color: COL.wall },
+    { glyph: TILE.FLOOR, name: "Floor", color: COL.floor },
+    { glyph: TILE.CORR, name: "Hall", color: COL.corr },
+
+    { glyph: TILE.DOOR_C, name: "Door", color: COL.door },
+    { glyph: TILE.DOOR_O, name: "Open", color: COL.door },
+    { glyph: TILE.LDOOR_C, name: "Locked", color: COL.locked },
+
+    { glyph: ENT.TORCH, name: "Torch", color: COL.torch },
+
+    { glyph: ENT.SHRINE, name: "Vitality Shrine", color: COL.shrine },
+
+    { glyph: TILE.SD_C, name: "Secret", color: COL.sdoor },
+    { glyph: TILE.SD_O, name: "Open", color: COL.sdoor },
+    { glyph: TILE.DOWN, name: "Down", color: COL.stairs },
+    { glyph: TILE.SDOWN, name: "Skip", color: COL.shortcut },
+
+    { glyph: ENT.TRADER, name: "Trader", color: COL.trader },
+
+    { glyph: ENT.POTION, name: "Heal (purple)", color: POTION_COLOR[POTION.HEAL] },
+    { glyph: ENT.POTION, name: "Poison (green)", color: POTION_COLOR[POTION.POISON] },
+    { glyph: ENT.POTION, name: "Invis (grey)", color: POTION_COLOR[POTION.INVIS] },
+    { glyph: ENT.POTION, name: "Trans (ochre)", color: POTION_COLOR[POTION.TRANSMUTE] },
+    { glyph: ENT.POTION, name: "Invinc (red)", color: POTION_COLOR[POTION.INVINC] },
+
+    { glyph: ENT.CHEST, name: "Chest", color: COL.chest },
+    { glyph: ENT.WEAPON, name: "Weapon", color: COL.weapon },
+    { glyph: ENT.TRAP, name: "Trap", color: COL.trap },
+
+    { glyph: ENT.GOBLIN, name: "Goblin", color: MONSTER_COLOR[ENT.GOBLIN] },
+    { glyph: ENT.ORC, name: "Orc", color: MONSTER_COLOR[ENT.ORC] },
+    { glyph: ENT.SNAKE, name: "Snake", color: MONSTER_COLOR[ENT.SNAKE] },
+    { glyph: ENT.CUBE, name: "Cube", color: MONSTER_COLOR[ENT.CUBE] },
+    { glyph: ENT.DRAGON, name: "Dragon", color: MONSTER_COLOR[ENT.DRAGON] },
+    { glyph: ENT.CRAWLER, name: "Crawler", color: MONSTER_COLOR[ENT.CRAWLER] },
+    { glyph: ENT.WALKER, name: "Walker", color: MONSTER_COLOR[ENT.WALKER] },
+    { glyph: ENT.WRAITH, name: "Wraith", color: MONSTER_COLOR[ENT.WRAITH] },
+    { glyph: ENT.HORROR, name: "Horror", color: MONSTER_COLOR[ENT.HORROR] }
+  ];
+
+  const LEGEND_NOTE = `
+    Visible tiles are bright; remembered tiles are dim.<br/>
+    Start in darkness (vision ${VISION_DARK}). Torches restore vision and then dim as moves are made (carry ${TORCH_CAP}).<br/>
+    Locked doors (X) can be unlocked with keys (now stored in chests), or forced with HP cost.<br/>
+    Potions share glyph (!) but have different colors/effects. Effects tick on movement steps.
+  `;
+
+  // ---------- UI ----------
+  const $screen = document.getElementById('screen');
+  const $hud = document.getElementById('hud');
+  const $log = document.getElementById('log');
+  const $prompt = document.getElementById('prompt');
+  const $restartBtn = document.getElementById('restartBtn');
+  const $legend = document.getElementById('legend');
+  const $legendNote = document.getElementById('legendNote');
+
+
+  // ---------- AUDIO + MUSIC ENGINE ----------
+  // Single-channel BGM player that can switch between base theme and situational clips.
+  const $bgm = document.getElementById('bgm');
+  const $muteBtn = document.getElementById('muteBtn');
+  const $skipBtn = document.getElementById('skipBtn');
+  let uiMuted = (localStorage.getItem("dd_muted") === "1"); // persisted
+  let pendingPlay = false;
+
+  // Music catalog (scale-friendly: add more pools/triggers as you create clips)
+  const INTRO_LOCK_MS = 45000; // minimum time before triggers (45s)
+  const SKIP_PLAYLIST = [
+    "dungeons deep.mp3",
+    "music_active.mp3",
+    "music_active2.mp3",
+    "music_medium2.mp3",
+    "music_medium3.mp3",
+    "music_slow1.mp3",
+    "music_slow2.mp3",
+    "music_slow3.mp3",
+    "music_adventuring.mp3",
+    "music_adventuring2.mp3",
+    "music_adventuring3.mp3",
+    "music_adventuring4.mp3",
+    "music_adventuring5.mp3",
+    "music2_transitions_descending.mp3",
+    "music2_transitions2.mp3",
+    "music2_transitions3.mp3"
+  ];
+
+  const Music = {
+    base: { src: "dungeons deep.mp3", loop: true },
+
+    // pools = collections of clips that a trigger may pick from
+    pools: {
+      active: [
+        { src: "music_active.mp3", weight: 1 },
+        { src: "music_active2.mp3", weight: 1 }
+      ],
+      medium: [
+
+        { src: "music_medium2.mp3", weight: 1 },
+
+        { src: "music_medium3.mp3", weight: 1 },
+
+        { src: "music_adventuring.mp3",  weight: 1 },
+
+        { src: "music_adventuring2.mp3", weight: 1 },
+
+        { src: "music_adventuring3.mp3", weight: 1 },
+
+        { src: "music_adventuring4.mp3", weight: 1 },
+
+        { src: "music_adventuring5.mp3", weight: 1 }
+
+      ],
+      slow: [
+        { src: "music_slow1.mp3", weight: 1 },
+        { src: "music_slow2.mp3", weight: 1 },
+        { src: "music_slow3.mp3", weight: 1 }
+      ],
+
+      // Mixed roaming pool: mostly slow, occasionally medium
+      roam: [
+
+        { src: "music_slow1.mp3",        weight: 3 },
+
+        { src: "music_slow2.mp3",        weight: 3 },
+
+        { src: "music_slow3.mp3",        weight: 3 },
+
+        { src: "music_medium2.mp3",      weight: 1 },
+
+        { src: "music_medium3.mp3",      weight: 1 },
+
+        { src: "music_adventuring.mp3",  weight: 2 },
+
+        { src: "music_adventuring2.mp3", weight: 2 },
+
+        { src: "music_adventuring3.mp3", weight: 2 },
+
+        { src: "music_adventuring4.mp3", weight: 2 },
+
+        { src: "music_adventuring5.mp3", weight: 2 }
+
+      ],
+      transitions: [
+
+        { src: "music2_transitions_descending.mp3", weight: 1 },
+
+        { src: "music2_transitions2.mp3", weight: 1 },
+
+        { src: "music2_transitions3.mp3", weight: 1 }
+
+      ]
+    },
+
+    // triggers = rule definitions (probability + cooldown + pool)
+    triggers: {
+      monsterEncounter: { prob: 0.50, cooldownMs: 8000, pool: "active" },
+      roam:            { prob: 0.20, cooldownMs: 12000, pool: "roam" },
+      descend:         { prob: 1.00, cooldownMs: 0,     pool: "transitions" }
+    },
+
+    state: {
+      mode: "base", // "base" | "clip"
+      skipIndex: 0,
+      introPlaying: true,
+      introStart: 0,
+      pending: [],
+      pendingTimer: null,
+      lastFire: { monsterEncounter: 0, roam: 0 }
+    }
+  };
+
+  
+  function musicAllTracks(){
+    const seen = new Set();
+    const out = [];
+
+    // base first
+    if(Music.base && Music.base.src){
+      seen.add(Music.base.src);
+      out.push(Music.base.src);
+    }
+
+    // pools in stable order
+    const poolOrder = Object.keys(Music.pools || {});
+    for(const poolName of poolOrder){
+      const pool = Music.pools[poolName] || [];
+      for(const it of pool){
+        const src = it && it.src;
+        if(src && !seen.has(src)){
+          seen.add(src);
+          out.push(src);
+        }
+      }
+    }
+    return out;
+  }
+
+  function musicSkipNext(){
+    if(!$bgm) return;
+
+    // Skipping is a user action: clear intro locks so cycling is responsive.
+    Music.state.introPlaying = false;
+    Music.state.introStart = 0;
+
+    // Advance deterministic playlist index
+    Music.state.skipIndex = (Music.state.skipIndex || 0) + 1;
+    const idx = Music.state.skipIndex % SKIP_PLAYLIST.length;
+    const next = SKIP_PLAYLIST[idx];
+
+    // Treat base theme as looping, all others as clips (non-loop)
+    const isBase = (next === (Music.base && Music.base.src));
+    Music.state.mode = isBase ? "base" : "clip";
+
+    musicSetSrcHard(next, isBase);
+
+    try{ $bgm.currentTime = 0; }catch(e){}
+    musicPlay();
+  }
+
+function setMuted(v){
+    uiMuted = !!v;
+    localStorage.setItem("dd_muted", uiMuted ? "1" : "0");
+    if($bgm) $bgm.muted = uiMuted;
+    if($muteBtn){
+      $muteBtn.classList.toggle("is-muted", uiMuted);
+      $muteBtn.setAttribute("aria-pressed", uiMuted ? "true" : "false");
+      $muteBtn.textContent = uiMuted ? "🔇" : "🔊";
+    }
+    if(uiMuted && $bgm) $bgm.pause();
+  }
+
+  function weightedPick(arr){
+    const total = arr.reduce((s,it)=>s+(it.weight||1),0);
+    let r = Math.random()*total;
+    for(const it of arr){
+      r -= (it.weight||1);
+      if(r <= 0) return it;
+    }
+    return arr[arr.length-1];
+  }
+
+  function musicSetSrc(src, loop){
+    if(!$bgm) return;
+    if($bgm && !$bgm.paused){ try{$bgm.pause();}catch(e){} }
+    if($bgm.getAttribute("src") !== src){
+      $bgm.setAttribute("src", src);
+      $bgm.load();
+    }
+    $bgm.loop = !!loop;
+  }
+
+
+  function musicSetSrcHard(src, loop){
+    if(!$bgm) return;
+    try{ $bgm.pause(); }catch(e){}
+    // Use property assignment so currentSrc updates reliably
+    $bgm.src = src;
+    $bgm.loop = !!loop;
+    try{ $bgm.load(); }catch(e){}
+  }
+  function musicPlay(){
+    if(!$bgm || uiMuted) return;
+    const p = $bgm.play();
+    if(p && typeof p.catch === "function"){
+      p.catch(() => { pendingPlay = true; });
+    }
+  }
+
+  function playTheme(){
+    if(!$bgm || uiMuted) return;
+
+    // Intro lock: let the theme play through once before any other music can trigger
+    Music.state.mode = "base";
+    Music.state.introPlaying = true;
+    Music.state.introStart = Date.now();
+    musicSetSrc(Music.base.src, false); // play once (no loop) for the intro
+    try{ $bgm.currentTime = 0; }catch(e){}
+    musicPlay();
+
+    // fresh run
+    Music.state.lastFire.monsterEncounter = 0;
+    Music.state.lastFire.roam = 0;
+    Music.state.skipIndex = -1;
+  }
+
+  function playClip(src){
+    if(!$bgm || uiMuted) return;
+    Music.state.mode = "clip";
+    musicSetSrc(src, false);
+    try{ $bgm.currentTime = 0; }catch(e){}
+    musicPlay();
+  }
+
+  function resumeBase(){
+    if(!$bgm) return;
+    Music.state.mode = "base";
+    Music.state.introPlaying = false;
+    musicSetSrc(Music.base.src, true);
+    musicPlay();
+  }
+
+  
+  function queueMusicTrigger(triggerName, retryInMs){
+    //logMsg(`[Music] Queued ${triggerName}`);
+    // de-dupe
+    if(!Music.state.pending.includes(triggerName)){
+      Music.state.pending.push(triggerName);
+    }
+    // schedule a retry when the lock is likely to clear
+    if(Music.state.pendingTimer) return;
+    const wait = Math.max(250, Math.min(60000, retryInMs || 1000));
+    Music.state.pendingTimer = setTimeout(() => {
+      Music.state.pendingTimer = null;
+      processPendingMusicTriggers();
+    }, wait);
+  }
+
+  function processPendingMusicTriggers(){
+    if(!$bgm || uiMuted) return;
+    if(Music.state.mode === "clip") return;
+
+    // If still in intro, keep waiting
+    if(Music.state.introStart){
+      const elapsed = Date.now() - Music.state.introStart;
+      if(elapsed < INTRO_LOCK_MS || Music.state.introPlaying){
+        queueMusicTrigger(Music.state.pending[0] || "roam", INTRO_LOCK_MS - elapsed);
+        return;
+      }
+    }
+
+    // Try pending triggers in FIFO order
+    while(Music.state.pending.length){
+      const tname = Music.state.pending.shift();
+      // Try without queue to avoid infinite loops
+      musicMaybeTrigger(tname, false);
+      if(Music.state.mode === "clip") break;
+    }
+  }
+function musicMaybeTrigger(triggerName, allowQueue=false){
+    if(!$bgm || uiMuted) return;
+
+    const t = Music.triggers[triggerName];
+    if(!t) return;
+
+    const now = Date.now();
+    const last = Music.state.lastFire[triggerName] || 0;
+    if(now - last < t.cooldownMs) return;
+
+    // Hard intro time lock: do not allow situational music before minimum time
+    if(Music.state.introStart){
+      const elapsed = Date.now() - Music.state.introStart;
+      if(elapsed < INTRO_LOCK_MS){
+        if(allowQueue) queueMusicTrigger(triggerName, INTRO_LOCK_MS - elapsed);
+        return;
+      }
+    }
+
+    // Soft intro lock: even after 45s, do not interrupt until the intro has finished
+    if(Music.state.introPlaying){
+      if(allowQueue) queueMusicTrigger(triggerName, 1000);
+      return;
+    }
+
+    // Don't interrupt a currently-playing clip
+    if(Music.state.mode === "clip") return;
+
+    if(Math.random() > t.prob) return;
+
+    const pool = Music.pools[t.pool] || [];
+    if(pool.length === 0) return;
+
+    const pick = weightedPick(pool);
+    Music.state.lastFire[triggerName] = now;
+    playClip(pick.src);
+  }
+
+  // When a situational clip ends, return to base theme
+  
+  function handleBgmEnded(){
+
+      // If a situational clip ended, return to base loop
+      if(Music.state.mode === "clip"){
+        resumeBase();
+        return;
+      }
+
+      // If the base intro finished, switch to looping base theme
+      if(Music.state.mode === "base" && Music.state.introPlaying){
+        Music.state.introPlaying = false;
+        Music.state.introStart = 0;
+        musicSetSrc(Music.base.src, true);
+        try{ $bgm.currentTime = 0; }catch(e){}
+        musicPlay();
+      }
+    
+  }
+  if($bgm){
+    $bgm.addEventListener("ended", handleBgmEnded);
+  }
+
+
+  // Autoplay fallback: retry once user interacts (browser policy)
+  (function armAutoplayFallback(){
+    const kick = () => {
+      if(!pendingPlay) return;
+      pendingPlay = false;
+      musicPlay();
+      window.removeEventListener("keydown", kick, true);
+      window.removeEventListener("mousedown", kick, true);
+      window.removeEventListener("touchstart", kick, true);
+    };
+    window.addEventListener("keydown", kick, true);
+    window.addEventListener("mousedown", kick, true);
+    window.addEventListener("touchstart", kick, true);
+  })();
+
+  // Mute toggle (one-click unmute + immediate playback)
+  if($muteBtn){
+    $muteBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const nextMuted = !uiMuted;
+      setMuted(nextMuted);
+      if(!nextMuted){
+        musicPlay();
+      }
+    });
+  }
+  
+  // Skip button: jump to end of current track (intro/clip/base). Useful for testing.
+  if($skipBtn){
+    $skipBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      musicSkipNext();
+    });
+  }
+
+
+setMuted(uiMuted);
+
+  
+  // ---------- SFX ENGINE (plays over music) ----------
+  // WebAudio-based (more reliable than <audio> nodes across browsers) + easy to extend.
+  const SFX_MASTER = 0.55; // global SFX loudness (0..1)
+
+  const SFX_DEFS = {
+    step:    { src: "sfx_step.wav",        vol: 0.35 },
+    bump:    { src: "sfx_wall_bump.wav",   vol: 0.55 },
+    pickup:  { src: "sfx_pickup.wav",      vol: 0.55 },
+    drink:   { src: "sfx_drink.wav",       vol: 0.50 },
+    attack:  { src: "sfx_attack.wav",      vol: 0.60 },
+    damage:  { src: "sfx_damage.wav",      vol: 0.70 },
+    descend: { src: "sfx_descend.wav",     vol: 0.60 },
+    wait:    { src: "sfx_wait.wav",        vol: 0.30 }
+  };
+
+  let sfxCtx = null;
+  let sfxMasterGain = null;
+  const sfxBuffers = {}; // name -> AudioBuffer
+  let sfxReady = false;
+
+  async function initSfxWebAudio(){
+    try{
+      sfxCtx = new (window.AudioContext || window.webkitAudioContext)();
+      sfxMasterGain = sfxCtx.createGain();
+      sfxMasterGain.gain.value = Math.max(0, Math.min(1, SFX_MASTER));
+      sfxMasterGain.connect(sfxCtx.destination);
+
+      const entries = Object.entries(SFX_DEFS);
+      for(const [name, def] of entries){
+        const resp = await fetch(def.src, { cache: "no-store" });
+        const arr = await resp.arrayBuffer();
+        const buf = await sfxCtx.decodeAudioData(arr);
+        sfxBuffers[name] = buf;
+      }
+      sfxReady = true;
+    }catch(e){
+      console.warn("SFX WebAudio init failed (check wav paths / browser):", e);
+      sfxReady = false;
+    }
+  }
+
+  function ensureSfxContextResumed(){
+    if(!sfxCtx) return;
+    if(sfxCtx.state === "suspended"){
+      sfxCtx.resume().catch(()=>{});
+    }
+  }
+
+  function playSfx(name){
+    if(uiMuted) return;
+    if(!sfxReady || !sfxCtx) return;
+    const buf = sfxBuffers[name];
+    if(!buf) return;
+
+    ensureSfxContextResumed();
+
+    const src = sfxCtx.createBufferSource();
+    src.buffer = buf;
+
+    const g = sfxCtx.createGain();
+    const vol = (SFX_DEFS[name]?.vol ?? 0.5);
+    g.gain.value = Math.max(0, Math.min(1, vol));
+
+    src.connect(g);
+    g.connect(sfxMasterGain);
+
+    try{ src.start(0); }catch(e){}
+  }
+
+  // Kick off loading immediately; actual playback requires a user gesture to resume AudioContext (handled below).
+  initSfxWebAudio();
+
+  // Resume SFX context on first user gesture (keydown/click/touch)
+  (function armSfxGestureResume(){
+    const kick = () => {
+      ensureSfxContextResumed();
+      window.removeEventListener("keydown", kick, true);
+      window.removeEventListener("mousedown", kick, true);
+      window.removeEventListener("touchstart", kick, true);
+    };
+    window.addEventListener("keydown", kick, true);
+    window.addEventListener("mousedown", kick, true);
+    window.addEventListener("touchstart", kick, true);
+  })();
+
+  // Tiny self-test: press "V" to play a pickup sound (does not affect gameplay)
+  window.addEventListener("keydown", (e) => {
+    if(e.key === "v" || e.key === "V"){
+      playSfx("pickup");
+    }
+  }, true);
+
+// legend collapse controls
+  const $legendToggle = document.getElementById('legendToggle');
+  const $legendBody = document.getElementById('legendBody');
+  let legendCollapsed = localStorage.getItem("dd_legend_collapsed") === "1";
+  function setLegendCollapsed(v){
+    legendCollapsed = v;
+    $legendBody.setAttribute('data-collapsed', legendCollapsed ? 'true' : 'false');
+    $legendToggle.setAttribute('aria-expanded', legendCollapsed ? 'false' : 'true');
+    localStorage.setItem("dd_legend_collapsed", legendCollapsed ? "1" : "0");
+  }
+  $legendToggle.addEventListener('click', () => setLegendCollapsed(!legendCollapsed));
+  setLegendCollapsed(legendCollapsed);
+
+  function escapeHtml(s){
+    return s.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+  }
+
+  function renderLegend(){
+    $legend.innerHTML = GLYPH_REGISTRY.map(row => {
+      const g = row.glyph === ' ' ? '&nbsp;' : escapeHtml(row.glyph);
+      return `
+        <div class="legend-item">
+          <div class="glyph" style="color:${row.color}">${g}</div>
+          <div>${escapeHtml(row.name)}</div>
+        </div>
+      `;
+    }).join('');
+    $legendNote.innerHTML = LEGEND_NOTE;
+  }
+
+  // ---------- HELPERS ----------
+  function clamp(n,a,b){ return Math.max(a, Math.min(b, n)); }
+  function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function choice(arr){ return arr[randInt(0, arr.length-1)]; }
+
+
+function weightedChoice(items, weights){
+  const total = weights.reduce((a,b)=>a+b,0);
+  let r = Math.random()*total;
+  for(let i=0;i<items.length;i++){
+    r -= weights[i];
+    if(r <= 0) return items[i];
+  }
+  return items[items.length-1];
+}
+
+
+
+  function shuffleInPlace(arr){
+    for(let i=arr.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function chance(p){ return Math.random() < p; }
+  function keyXY(x,y){ return `${x},${y}`; }
+  function parseKey(k){ const [x,y]=k.split(',').map(Number); return {x,y}; }
+
+  // Consume a specific potion type regardless of pickup order (no FIFO/LIFO).
+  function consumePotionByType(type){
+    const inv = game.inv.potions;
+    if(!Array.isArray(inv) || inv.length === 0) return false;
+    const idx = inv.indexOf(type);
+    if(idx === -1) return false;
+    inv.splice(idx, 1);
+    return true;
+  }
+
+  function debugFillPotions(){
+    // Fill the potion belt to POTION_CAP with a balanced mix (healing favored).
+    game.inv.potions.length = 0;
+
+    // Target mix totals to exactly POTION_CAP (adjusts automatically if cap changes).
+    const target = {
+      [POTION.HEAL]: Math.round(POTION_CAP * 0.36),
+      [POTION.POISON]: Math.round(POTION_CAP * 0.16),
+      [POTION.INVIS]: Math.round(POTION_CAP * 0.16),
+      [POTION.TRANSMUTE]: Math.round(POTION_CAP * 0.14),
+      [POTION.INVINC]: Math.round(POTION_CAP * 0.13),
+      [POTION.TELE]: Math.round(POTION_CAP * 0.05),
+    };
+
+    // Normalize in case rounding drifts.
+    let total = Object.values(target).reduce((a,b)=>a+b,0);
+    while(total > POTION_CAP){ target[POTION.HEAL]--; total--; }
+    while(total < POTION_CAP){ target[POTION.HEAL]++; total++; }
+
+    for(const [type, n] of Object.entries(target)){
+      for(let i=0;i<n;i++) game.inv.potions.push(type);
+    }
+  }
+
+
+
+  function countPotionsByType(){
+    const counts = {
+      [POTION.HEAL]: 0,
+      [POTION.POISON]: 0,
+      [POTION.INVIS]: 0,
+      [POTION.TRANSMUTE]: 0,
+      [POTION.INVINC]: 0,
+      [POTION.TELE]: 0};
+    for(const p of game.inv.potions){
+      if(p in counts) counts[p] += 1;
+    }
+    return counts;
+  }
+
+  function makeGrid(w,h, fill){
+    const g = new Array(w);
+    for(let x=0;x<w;x++){
+      g[x] = new Array(h);
+      for(let y=0;y<h;y++) g[x][y] = fill;
+    }
+    return g;
+  }
+
+  // ---------- GAME STATE ----------
+  let game;
+
+  function newGame(){
+    game = {
+      depth: 1,
+      maxDepth: 20,
+      hpMax: 18,
+      hp: 18,
+      restFrac: 0,
+      restHealedThisLevel: 0,
+      
+      restCapMsgShown: false,
+      atk: 3,
+      weaponName: "Bare Hands",
+      weaponEquipped: false,
+      gold: 0,
+      inv: {
+        potions: [],
+        keys: 0,
+        torches: 0
+      },
+      effects: {
+        poison: 0,
+        invis: 0,
+        transmute: 0,
+        invincible: 0
+      },
+      torch: {
+        lit: false,
+        radius: VISION_DARK,
+        burnLeft: 0,
+        dimStepLeft: 0
+      },
+      msg: [],
+      levels: {},
+      prompt: null,
+      slimeWait: false,
+      ended: false,
+      victory: null
+    };
+
+
+    // Default starting supplies
+    for(let i=0;i<DEFAULT_HEAL_POTIONS;i++) game.inv.potions.push(POTION.HEAL);
+    if(DEBUG){
+      debugFillPotions();
+      logMsg("DEBUG: Potion belt filled for testing.");
+    }
+
+    loadLevel(1);
+    logMsg(`It is dark and your vision is a bleary ${VISION_DARK}. Find a weapon and a torch.`);
+    logMsg("Dungeons deep and caverns old…Enter now if ye so bold.");
+    //logMsg("Keys are found in chests ($). Open one to grab them and gold.");
+    renderAll();
+  }
+
+  function endGameWin(){
+    if(game.ended) return;
+    game.ended = true;
+    game.victory = true;
+    logMsg("you win!");
+    logMsg("Reset to play again.");
+    renderAll(true);
+  }
+
+  function endGameLose(){
+    if(game.ended) return;
+    game.ended = true;
+    game.victory = false;
+    logMsg("Defeat — the depths claim another explorer.");
+    logMsg("Reset to try again.");
+    renderAll(true);
+  }
+
+  function setPrompt(p){ game.prompt = p; renderPrompt(); }
+  function clearPrompt(){ game.prompt = null; renderPrompt(); }
+
+  function renderPrompt(){
+    if(!game.prompt){
+      $prompt.innerHTML = `<span style="opacity:.85">No prompt.</span>`;
+      return;
+    }
+    const p = game.prompt;
+    if(p.type === 'trade'){
+      $prompt.innerHTML =
+        `<b style="color:${COL.trader}">Trader:</b> Trade gold? ` +
+        `<span class="pill">A</span> Potion (${p.costPotion}g) ` +
+        `<span class="pill">B</span> Weapon (+${p.atkBonus} ATK, ${p.costWeapon}g)` +
+        ` — Buy? <b>Y/N</b> (default N if leaving).`;
+    } else if(p.type === 'shrine'){
+      $prompt.innerHTML =
+        `<b style="color:${COL.shrine}">Shrine:</b> Gain +1 Max HP at a cost? <b>Y/N</b> (default N if leaving).`;
+    } else {
+      $prompt.innerHTML = `<span style="opacity:.85">Prompt active.</span>`;
+    }
+  }
+
+  function logMsg(s){
+    game.msg.unshift(s);
+    game.msg = game.msg.slice(0, 7);
+    const lines = game.msg.map(m => `<div class="logline">${escapeHtml(m)}</div>`).join('');
+    $log.innerHTML = `<h3>Messages</h3>${lines}`;
+  }
+
+  function getLevel(depth){ return game.levels[depth]; }
+  function setLevel(depth, lvl){ game.levels[depth] = lvl; }
+
+  function loadLevel(depth){
+    let lvl = getLevel(depth);
+    if(!lvl){
+      lvl = generateLevel(depth);
+      setLevel(depth, lvl);
+    }
+    game.depth = depth;
+    game.restFrac = 0;
+    game.restHealedThisLevel = 0;
+    game.restCapMsgShown = false;
+    lvl.player = { ...lvl.startPos };
+    clearPrompt();
+    computeFov(lvl);
+  }
+
+  // ---------- EFFECTS ----------
+  function hasInvincible(){ return game.effects.invincible > 0; }
+  function hasInvis(){ return game.effects.invis > 0; }
+  function hasTransmute(){ return game.effects.transmute > 0; }
+
+  function tickEffectsOnStep(){
+    if(game.effects.poison > 0){
+      const dmg = randInt(POISON_DMG_RANGE[0], POISON_DMG_RANGE[1]);
+      if(!hasInvincible()){
+        game.hp -= dmg;
+        logMsg(`Poison burns. -${dmg} HP (${game.effects.poison-1} steps left).`);
+        if(game.hp <= 0){
+          game.hp = 0;
+          endGameLose();
+          return;
+        }
+      } else {
+        logMsg(`Poison tries to bite… but invincibility holds (${game.effects.poison-1}).`);
+      }
+      game.effects.poison--;
+    }
+
+    if(game.effects.invis > 0){
+      game.effects.invis--;
+      if(game.effects.invis === 0) logMsg("Invisibility fades.");
+    }
+    if(game.effects.transmute > 0){
+      game.effects.transmute--;
+      if(game.effects.transmute === 0) logMsg("Transmutation ends.");
+    }
+    if(game.effects.invincible > 0){
+      game.effects.invincible--;
+      if(game.effects.invincible === 0) logMsg("Invincibility fades.");
+    }
+  }
+
+  // ---------- TORCH ----------
+  
+  // ---------- ENVIRONMENT MECHANICS ----------
+  function envAt(lvl, x, y){
+    if(!lvl.env || !lvl.env[x]) return 0;
+    return lvl.env[x][y];
+  }
+
+  function handleWaterEffectsOnEnter(lvl){
+    // Extinguish lit torch immediately
+    if(game.torch.lit){
+      game.torch.lit = false;
+      game.torch.radius = VISION_DARK;
+      game.torch.burnLeft = 0;
+      game.torch.dimStepLeft = 0;
+      logMsg("Water extinguishes your torch.");
+    }
+
+    // Drop any spare torches carried
+    if(game.inv.torches > 0){
+      const dropCount = game.inv.torches;
+      game.inv.torches = 0;
+      logMsg("You drop your saturated torches.");
+
+      const p = lvl.player;
+      const k = keyXY(p.x, p.y);
+      if(lvl.items.has(k)){
+        // If something already exists here, we just lose them (rare)
+      } else {
+        lvl.items.set(k, { type: ENT.TORCH, count: dropCount });
+      }
+    }
+  }
+
+  function applyEnvironmentOnEnter(lvl, prevX, prevY, newX, newY){
+    const e = envAt(lvl, newX, newY);
+
+    if(e === 'water'){
+      // Flavor message + then apply torch/gear effects
+      logMsg("Dank water flows from the ceiling to the floor.");
+      handleWaterEffectsOnEnter(lvl);
+
+    } else if(e === 'mist'){
+      logMsg("An enveloping mist limits your vision");
+
+    } else if(e === 'fire'){
+      if(!hasInvincible()){
+        game.hp -= 2;
+        logMsg("Fire scorches you. -2 HP.");
+        if(game.hp <= 0){
+          game.hp = 0;
+          endGameLose();
+          return;
+        }
+      }
+    }
+    // Slime remains handled by the movement-slow logic (as-is)
+  }
+function currentVisionRadius(){
+    const lvl = getLevel(game.depth);
+    const p = lvl.player;
+    const e = envAt(lvl, p.x, p.y);
+    if(e === 'mist'){
+      return game.torch.lit ? 1 : 0;
+    }
+    return game.torch.radius;
+  }
+
+  function startNewTorchBurn(){
+    game.torch.lit = true;
+    game.torch.radius = VISION_DEFAULT;
+    game.torch.burnLeft = TORCH_BURN_MOVES;
+    game.torch.dimStepLeft = TORCH_DIM_STEP_MOVES;
+  }
+
+  function maybeAutoLightTorch(){
+    if(game.torch.lit) return;
+    if(game.inv.torches <= 0) return;
+    game.inv.torches--;
+    startNewTorchBurn();
+    logMsg("A torch flares to life. The darkness retreats.");
+  }
+
+  function extinguishTorch(){
+    game.torch.lit = false;
+    game.torch.radius = VISION_DARK;
+    game.torch.burnLeft = 0;
+    game.torch.dimStepLeft = 0;
+    logMsg("The torch sputters out. Darkness returns.");
+    maybeAutoLightTorch();
+  }
+
+  function advanceTorchOnMove(){
+    if(!game.torch.lit) return;
+
+    if(game.torch.burnLeft > 0){
+      game.torch.burnLeft--;
+      if(game.torch.burnLeft === 0){
+        logMsg("The torch begins to dim...");
+      }
+      return;
+    }
+
+    game.torch.dimStepLeft--;
+    if(game.torch.dimStepLeft > 0) return;
+
+    game.torch.dimStepLeft = TORCH_DIM_STEP_MOVES;
+    if(game.torch.radius > VISION_DARK){
+      game.torch.radius--;
+      if(game.torch.radius > VISION_DARK){
+        logMsg(`The torch dims. Visibility now ${game.torch.radius}.`);
+      } else {
+        extinguishTorch();
+      }
+    } else {
+      extinguishTorch();
+    }
+  }
+
+  // ---------- GENERATION HELPERS ----------
+  function rectsOverlapInflated(a,b,pad){
+    const ax1=a.x-pad, ay1=a.y-pad, ax2=a.x+a.w+pad, ay2=a.y+a.h+pad;
+    const bx1=b.x, by1=b.y, bx2=b.x+b.w, by2=b.y+b.h;
+    return ax1 < bx2 && ax2 > bx1 && ay1 < by2 && ay2 > by1;
+  }
+
+  function carveRoom(tiles, r, secretGrid=null){
+    for(let x=r.x;x<r.x+r.w;x++){
+      for(let y=r.y;y<r.y+r.h;y++){
+        tiles[x][y] = TILE.FLOOR;
+        if(secretGrid) secretGrid[x][y] = true;
+      }
+    }
+  }
+
+  function carveH(tiles, x1,x2,y, secretGrid=null){
+    const [a,b] = x1<x2 ? [x1,x2] : [x2,x1];
+    for(let x=a;x<=b;x++){
+      if(tiles[x][y] === TILE.ROCK) tiles[x][y] = TILE.CORR;
+      if(secretGrid) secretGrid[x][y] = true;
+    }
+  }
+
+  function carveV(tiles, y1,y2,x, secretGrid=null){
+    const [a,b] = y1<y2 ? [y1,y2] : [y2,y1];
+    for(let y=a;y<=b;y++){
+      if(tiles[x][y] === TILE.ROCK) tiles[x][y] = TILE.CORR;
+      if(secretGrid) secretGrid[x][y] = true;
+    }
+  }
+
+  function carveCorridor(tiles, x1,y1,x2,y2){
+    if(Math.random()<0.5){
+      carveH(tiles, x1,x2,y1);
+      carveV(tiles, y1,y2,x2);
+    } else {
+      carveV(tiles, y1,y2,x1);
+      carveH(tiles, x1,x2,y2);
+    }
+  }
+
+  function findOpenSpot(tiles, room){
+    for(let tries=0; tries<2000; tries++){
+      const x = randInt(room.x+1, room.x+room.w-2);
+      const y = randInt(room.y+1, room.y+room.h-2);
+      const t = tiles[x][y];
+      if(t===TILE.FLOOR || t===TILE.CORR) return {x,y};
+    }
+    for(let x=1;x<MAP_W-1;x++){
+      for(let y=1;y<MAP_H-1;y++){
+        const t = tiles[x][y];
+        if(t===TILE.FLOOR || t===TILE.CORR) return {x,y};
+      }
+    }
+    return {x:2,y:2};
+  }
+
+    function findRandomOpenTile(lvl){
+    let x, y, tries = 0;
+    do{
+      x = randInt(1, MAP_W - 2);
+      y = randInt(1, MAP_H - 2);
+      tries++;
+      if(tries > 4000) break;
+
+      const k = keyXY(x,y);
+
+      if(lvl.tiles[x][y] !== TILE.FLOOR) continue;
+      if(lvl.player && lvl.player.x === x && lvl.player.y === y) continue;
+      if(lvl.monsters && lvl.monsters.has && lvl.monsters.has(k)) continue;
+      if(lvl.traders && lvl.traders.has && lvl.traders.has(k)) continue;
+
+      return {x,y};
+    }while(true);
+
+    // fallback: keep current position
+    return {x: lvl.player.x, y: lvl.player.y};
+  }
+
+
+  function scatter(map, tiles, count, makeObj, canPlaceFn=null, forbidFn=null){
+    let placed=0;
+    for(let tries=0; tries<25000 && placed<count; tries++){
+      const x = randInt(2, MAP_W-3);
+      const y = randInt(2, MAP_H-3);
+      if(canPlaceFn && !canPlaceFn(x,y)) continue;
+      if(forbidFn && forbidFn(x,y)) continue;
+
+      const k = keyXY(x,y);
+      if(map.has(k)) continue;
+
+      const t = tiles[x][y];
+      if(!(t===TILE.FLOOR || t===TILE.CORR)) continue;
+      if(t===TILE.DOWN || t===TILE.SDOWN) continue;
+      if(t===TILE.DOOR_C || t===TILE.DOOR_O || t===TILE.LDOOR_C) continue;
+
+      map.set(k, makeObj(x,y));
+      placed++;
+    }
+  }
+
+  function weaponNameForDepth(d){
+    if(d<6) return "Short Sword";
+    if(d<12) return "Long Sword";
+    if(d<18) return "Runed Blade";
+    return "Deepsteel Edge";
+  }
+  function weaponAtkForDepth(d){
+    if(d<6) return 4;
+    if(d<12) return 6;
+    if(d<18) return 8;
+    return 10;
+  }
+
+  function monsterPoolForDepth(d){
+    const pool = [
+      { glyph: ENT.GOBLIN, name: "Goblin", hp:[4,7], atk:[1,3], weight: 6 },
+      { glyph: ENT.ORC,    name: "Orc",    hp:[7,12], atk:[2,5], weight: 4 }
+    ];
+    if(d >= 3)  pool.push({ glyph: ENT.SNAKE,  name:"Green Snake",           hp:[5,9],  atk:[2,4], weight: 4 });
+    if(d >= 6)  pool.push({ glyph: ENT.CUBE,   name:"Blue Gelatinous Cube",  hp:[9,14], atk:[3,5], weight: 3 });
+    if(d >= 9)  pool.push({ glyph: ENT.DRAGON, name:"Red Fire Dragon",       hp:[14,20],atk:[5,8], weight: 2 });
+    if(d >= 12) pool.push({ glyph: ENT.CRAWLER,name:"Orange Carrion Crawler",hp:[12,18],atk:[4,7], weight: 3 });
+    if(d >= 15) pool.push({ glyph: ENT.WALKER, name:"White Undead Walker",   hp:[16,24],atk:[5,8], weight: 3 });
+    if(d >= 18) pool.push({ glyph: ENT.WRAITH, name:"Elder Ringwraith",      hp:[22,30],atk:[7,10],weight: 2 });
+    return pool;
+  }
+
+  function pickWeighted(pool){
+    const total = pool.reduce((s,p)=>s+p.weight,0);
+    let r = Math.random()*total;
+    for(const p of pool){
+      r -= p.weight;
+      if(r <= 0) return p;
+    }
+    return pool[pool.length-1];
+  }
+
+  function makeMonsterForDepth(d){
+    const base = pickWeighted(monsterPoolForDepth(d));
+    return {
+      glyph: base.glyph,
+      name: base.name,
+      hp: randInt(base.hp[0], base.hp[1]),
+      atk: randInt(base.atk[0], base.atk[1])
+    };
+  }
+
+  function isAreaAllRock(tiles, x0,y0,w,h){
+    for(let x=x0; x<x0+w; x++){
+      for(let y=y0; y<y0+h; y++){
+        if(x<1||y<1||x>=MAP_W-1||y>=MAP_H-1) return false;
+        if(tiles[x][y] !== TILE.ROCK) return false;
+      }
+    }
+    return true;
+  }
+
+  function addSecretRooms(lvl, depth){
+    const tiles = lvl.tiles;
+    const secret = lvl.secret;
+    const secretDoors = lvl.secretDoors;
+
+    const secretCount = randInt(SECRET_ROOM_MIN, SECRET_ROOM_MAX);
+    const dirs = [{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}];
+
+    let placed = 0;
+    for(let attempts=0; attempts<2200 && placed<secretCount; attempts++){
+      const ax = randInt(2, MAP_W-3);
+      const ay = randInt(2, MAP_H-3);
+      const at = tiles[ax][ay];
+      if(!(at===TILE.FLOOR || at===TILE.CORR)) continue;
+      if(secret[ax][ay]) continue;
+
+      const dir = dirs[randInt(0, dirs.length-1)];
+      const wx = ax + dir.dx;
+      const wy = ay + dir.dy;
+      if(wx<2||wy<2||wx>=MAP_W-2||wy>=MAP_H-2) continue;
+      if(tiles[wx][wy] !== TILE.ROCK) continue;
+
+      const len = randInt(2, 5);
+      const rw = randInt(4, 8);
+      const rh = randInt(4, 7);
+      const endx = wx + dir.dx * len;
+      const endy = wy + dir.dy * len;
+
+      let rx, ry;
+      if(dir.dx !== 0){
+        rx = endx + (dir.dx > 0 ? 0 : -rw+1);
+        ry = endy - Math.floor(rh/2);
+      } else {
+        rx = endx - Math.floor(rw/2);
+        ry = endy + (dir.dy > 0 ? 0 : -rh+1);
+      }
+
+      let corridorOk = true;
+      for(let i=1;i<=len;i++){
+        const x = wx + dir.dx*i;
+        const y = wy + dir.dy*i;
+        if(x<1||y<1||x>=MAP_W-1||y>=MAP_H-1) { corridorOk=false; break; }
+        if(tiles[x][y] !== TILE.ROCK) { corridorOk=false; break; }
+      }
+      if(!corridorOk) continue;
+      if(!isAreaAllRock(tiles, rx, ry, rw, rh)) continue;
+
+      const wk = keyXY(wx,wy);
+      if(secretDoors.has(wk)) continue;
+      secretDoors.set(wk, { discovered:false });
+
+      for(let i=1;i<=len;i++){
+        const x = wx + dir.dx*i;
+        const y = wy + dir.dy*i;
+        tiles[x][y] = TILE.CORR;
+        secret[x][y] = true;
+      }
+      carveRoom(tiles, {x:rx,y:ry,w:rw,h:rh}, secret);
+
+      if(chance(SECRET_SHORTCUT_CHANCE) && depth < 20){
+        const sx = randInt(rx+1, rx+rw-2);
+        const sy = randInt(ry+1, ry+rh-2);
+        tiles[sx][sy] = TILE.SDOWN;
+      }
+
+      placed++;
+    }
+  }
+
+  // ---------- DOORS ----------
+  function isPassableForDoorCandidate(t){ return (t === TILE.FLOOR || t === TILE.CORR); }
+  function isWall(t){ return (t === TILE.ROCK); }
+  function inBounds(x,y){ return x>=1 && y>=1 && x<MAP_W-1 && y<MAP_H-1; }
+  function isExistingDoor(t){
+    return (t === TILE.DOOR_C || t === TILE.DOOR_O || t === TILE.LDOOR_C || t === TILE.SD_C || t === TILE.SD_O);
+  }
+
+  function placeDoorsOnChokepoints(lvl){
+    const tiles = lvl.tiles;
+    const candidates = [];
+
+    for(let x=2; x<MAP_W-2; x++){
+      for(let y=2; y<MAP_H-2; y++){
+        const t = tiles[x][y];
+        if(!isPassableForDoorCandidate(t)) continue;
+        if(t === TILE.DOWN || t === TILE.SDOWN) continue;
+        if(lvl.secret[x][y]) continue;
+
+        const n = tiles[x][y-1], s = tiles[x][y+1], w = tiles[x-1][y], e = tiles[x+1][y];
+
+        const passN = isPassableForDoorCandidate(n) || n === TILE.DOWN || n === TILE.SDOWN;
+        const passS = isPassableForDoorCandidate(s) || s === TILE.DOWN || s === TILE.SDOWN;
+        const passW = isPassableForDoorCandidate(w) || w === TILE.DOWN || w === TILE.SDOWN;
+        const passE = isPassableForDoorCandidate(e) || e === TILE.DOWN || e === TILE.SDOWN;
+
+        const wallN = isWall(n);
+        const wallS = isWall(s);
+        const wallW = isWall(w);
+        const wallE = isWall(e);
+
+        const verticalChoke = passN && passS && wallW && wallE;
+        const horizChoke    = passW && passE && wallN && wallS;
+
+        if(!(verticalChoke || horizChoke)) continue;
+
+        candidates.push({x,y});
+      }
+    }
+
+    for(let i=candidates.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+    }
+
+    const doors = [];
+    for(const c of candidates){
+      if(!chance(DOOR_CHANCE)) continue;
+
+      let nearStairs = false;
+      for(let dx=-1; dx<=1; dx++){
+        for(let dy=-1; dy<=1; dy++){
+          const nx=c.x+dx, ny=c.y+dy;
+          if(!inBounds(nx,ny)) continue;
+          const tt = tiles[nx][ny];
+          if(tt === TILE.DOWN || tt === TILE.SDOWN){ nearStairs = true; break; }
+        }
+        if(nearStairs) break;
+      }
+      if(nearStairs) continue;
+
+      let adjDoor = false;
+      for(let dx=-1; dx<=1; dx++){
+        for(let dy=-1; dy<=1; dy++){
+          if(dx===0 && dy===0) continue;
+          const nx=c.x+dx, ny=c.y+dy;
+          if(!inBounds(nx,ny)) continue;
+          if(isExistingDoor(tiles[nx][ny])) { adjDoor=true; break; }
+        }
+        if(adjDoor) break;
+      }
+      if(adjDoor) continue;
+
+      tiles[c.x][c.y] = TILE.DOOR_C;
+      doors.push({x:c.x, y:c.y});
+    }
+
+    return doors;
+  }
+
+  function lockDoorsNoAdjacency(tiles, doorCoords, startPos){
+    const lockedSet = new Set();
+    const isDoorTile = (t) => (t===TILE.DOOR_C || t===TILE.LDOOR_C || t===TILE.DOOR_O);
+
+    for(const d of doorCoords){
+      if(!chance(LOCKED_DOOR_CHANCE)) continue;
+      const dist = Math.max(Math.abs(d.x-startPos.x), Math.abs(d.y-startPos.y));
+      if(dist < 4) continue;
+      tiles[d.x][d.y] = TILE.LDOOR_C;
+      lockedSet.add(keyXY(d.x,d.y));
+    }
+
+    const q = Array.from(lockedSet).map(parseKey);
+    const seen = new Set(lockedSet);
+
+    while(q.length){
+      const cur = q.pop();
+      for(let dx=-1; dx<=1; dx++){
+        for(let dy=-1; dy<=1; dy++){
+          if(dx===0 && dy===0) continue;
+          const nx = cur.x + dx, ny = cur.y + dy;
+          if(nx<1||ny<1||nx>=MAP_W-1||ny>=MAP_H-1) continue;
+          const t = tiles[nx][ny];
+          if(!isDoorTile(t)) continue;
+          const nk = keyXY(nx,ny);
+          if(seen.has(nk)) continue;
+
+          tiles[nx][ny] = TILE.LDOOR_C;
+          lockedSet.add(nk);
+          seen.add(nk);
+          q.push({x:nx,y:ny});
+        }
+      }
+    }
+
+    return Array.from(lockedSet).map(parseKey);
+  }
+
+  // ---------- Key chests placement ----------
+  function findRoomContaining(lvl, pos){
+    const tiles = lvl.tiles;
+    const {x:cx,y:cy} = pos;
+    if(tiles[cx][cy] !== TILE.FLOOR) return null;
+    let x1=cx, x2=cx, y1=cy, y2=cy;
+    while(x1>1 && tiles[x1-1][cy]===TILE.FLOOR) x1--;
+    while(x2<MAP_W-2 && tiles[x2+1][cy]===TILE.FLOOR) x2++;
+    while(y1>1 && tiles[cx][y1-1]===TILE.FLOOR) y1--;
+    while(y2<MAP_H-2 && tiles[cx][y2+1]===TILE.FLOOR) y2++;
+    return { x:x1, y:y1, w:(x2-x1+1), h:(y2-y1+1) };
+  }
+
+  function placeKeyChests(lvl, depth){
+    const tiles = lvl.tiles;
+    const neededKeys = lvl.lockedDoors.length;
+    if(neededKeys <= 0) return;
+
+    const keyChestCount =
+      neededKeys <= 2 ? 1 :
+      neededKeys <= 5 ? 2 : 3;
+
+    let remaining = neededKeys;
+    const keyCounts = [];
+    for(let i=0;i<keyChestCount;i++){
+      if(i === keyChestCount - 1){
+        keyCounts.push(remaining);
+      } else {
+        const give = Math.max(1, Math.floor(remaining / (keyChestCount - i)));
+        const jitter = Math.random() < 0.4 ? 0 : 1;
+        const amt = Math.min(remaining - (keyChestCount - i - 1), give + jitter);
+        keyCounts.push(amt);
+        remaining -= amt;
+      }
+    }
+
+    const startRoom = findRoomContaining(lvl, lvl.startPos);
+    const isNormal = (x,y) => !lvl.secret[x][y];
+
+    function canPlaceChestAt(x,y){
+      const t = tiles[x][y];
+      if(!(t===TILE.FLOOR || t===TILE.CORR)) return false;
+      if(t === TILE.DOWN || t === TILE.SDOWN) return false;
+      if(t === TILE.DOOR_C || t === TILE.DOOR_O || t === TILE.LDOOR_C) return false;
+      if(!isNormal(x,y)) return false;
+
+      if(startRoom && x>=startRoom.x && x<startRoom.x+startRoom.w && y>=startRoom.y && y<startRoom.y+startRoom.h){
+        return false;
+      }
+
+      const k = keyXY(x,y);
+      if(lvl.items.has(k) || lvl.traps.has(k) || lvl.monsters.has(k) || lvl.traders.has(k)) return false;
+      return true;
+    }
+
+    for(const kc of keyCounts){
+      let placed = false;
+
+      for(let tries=0; tries<20000 && !placed; tries++){
+        const x = randInt(2, MAP_W-3);
+        const y = randInt(2, MAP_H-3);
+        if(!canPlaceChestAt(x,y)) continue;
+
+        const baseGold = randInt(6,16) + depth*2;
+        lvl.items.set(keyXY(x,y), { type: ENT.CHEST, gold: baseGold, keys: kc });
+        placed = true;
+      }
+
+      if(!placed){
+        for(let tries=0; tries<20000 && !placed; tries++){
+          const x = randInt(2, MAP_W-3);
+          const y = randInt(2, MAP_H-3);
+          if(!isNormal(x,y)) continue;
+          const t = tiles[x][y];
+          if(!(t===TILE.FLOOR || t===TILE.CORR)) continue;
+          const k = keyXY(x,y);
+          if(lvl.items.has(k) || lvl.traps.has(k) || lvl.monsters.has(k) || lvl.traders.has(k)) continue;
+          const baseGold = randInt(6,16) + depth*2;
+          lvl.items.set(k, { type: ENT.CHEST, gold: baseGold, keys: kc });
+          placed = true;
+        }
+      }
+    }
+
+    // Optional: allow exactly one loose key sometimes in the start room (tutorial feel)
+    // Comment out this entire block to enforce chest-only keys.
+    if(startRoom && Math.random() < 0.20){
+      for(let tries=0; tries<4000; tries++){
+        const x = randInt(startRoom.x+1, startRoom.x+startRoom.w-2);
+        const y = randInt(startRoom.y+1, startRoom.y+startRoom.h-2);
+        const t = tiles[x][y];
+        if(!(t===TILE.FLOOR || t===TILE.CORR)) continue;
+        const k = keyXY(x,y);
+        if(lvl.items.has(k) || lvl.traps.has(k) || lvl.monsters.has(k) || lvl.traders.has(k)) continue;
+        lvl.items.set(k, { type: "__LOOSE_KEY__" }); // internal marker, rendered as k-less; picked up as 1 key
+        break;
+      }
+    }
+  }
+
+  // ---------- Potion selection ----------
+  function rollPotionType(depth){
+    const d = Math.min(20, Math.max(1, depth));
+    const k = d - 1; // 0..19
+
+    // Base weights match the debug mix (36/16/16/14/13/5), then shift gently with depth
+    const wHeal   = Math.max(18, 36 - Math.floor(k * 0.6));
+    const wPoison = 16 + Math.floor(k * 0.05);
+    const wInvis  = 16 + Math.floor(k * 0.05);
+    const wTrans  = 14 + Math.floor(k * 0.20);
+    const wInvinc = 13 + Math.floor(k * 0.20);
+    const wTele   =  5 + Math.floor(k * 0.15);
+
+    const items   = [POTION.HEAL, POTION.POISON, POTION.INVIS, POTION.TRANSMUTE, POTION.INVINC, POTION.TELE];
+    const weights = [wHeal,       wPoison,       wInvis,       wTrans,          wInvinc,        wTele];
+
+    return weightedChoice(items, weights);
+  }
+
+  
+  // ---------- ENVIRONMENT (Step 3: room-only placement; render-only overlays) ----------
+  const ENV_ROOM_CHANCE = 1.0; // chance a given eligible room becomes an env room (when a level theme is active) // per room
+  const ENV_MAX_FRACTION = 0.42;
+  const ENV_MIN_DEPTH = 2; // no environments on level 1
+    const ENV_LEVEL_CHANCE = 0.60; // chance a level gets an environmental theme at all
+    const ENV_ROOMS_MIN = 1;
+    const ENV_ROOMS_MAX = 3; // fewer, more cohesive rooms per level
+    const ENV_THEMES = [
+      { name: 'water+slime', types: ['water','slime'], weights: [0.65, 0.35] },
+      { name: 'fire+mist',  types: ['fire','mist'],   weights: [0.60, 0.40] }
+    ];
+  
+
+  const ENV_GLYPH = {
+    water: '≈',
+    slime: '~',
+    fire:  'x',
+    mist:  '░'
+  };
+  const ENV_COLOR = {
+    water: '#57c7ff',
+    slime: '#6fcf6a',
+    fire:  '#ff7043',
+    mist:  '#b6c0c8'
+  };
+
+  function placeLevelEnvironments(lvl, rooms, depth, startPos){
+  // Environments are purely visual overlays (passable). Keep them cohesive per level.
+
+  // DEBUG: force environments in every room starting at level 1 for testing.
+  // Cycles room-by-room through the available environment types so each room is different.
+  if(DEBUG){
+    if(!rooms || rooms.length === 0) return;
+    const debugTypes = ['water','slime','fire','mist'];
+    lvl.envTheme = 'debug';
+    for(let i=0;i<rooms.length;i++){
+      const r = rooms[i];
+      if(!r) continue;
+      const area = r.w * r.h;
+      const cap = Math.floor(area * ENV_MAX_FRACTION);
+      if(cap <= 0) continue;
+      const target = Math.min(cap, Math.max(4, Math.floor(cap * 0.75))); // fairly full but always under cap
+      const envType = debugTypes[i % debugTypes.length];
+
+      // Seed position inside room interior
+      let sx = randInt(r.x + 1, r.x + r.w - 2);
+      let sy = randInt(r.y + 1, r.y + r.h - 2);
+
+      const q = [[sx, sy]];
+      const seen = new Set();
+      let placed = 0;
+
+      while(q.length && placed < target){
+        const [x,y] = q.shift();
+        const k = keyXY(x,y);
+        if(seen.has(k)) continue;
+        seen.add(k);
+
+        if(x < r.x || x >= r.x + r.w || y < r.y || y >= r.y + r.h) continue;
+        if(lvl.tiles[x][y] !== TILE.FLOOR) continue;
+        if(lvl.env[x][y]) continue;
+
+        lvl.env[x][y] = envType;
+        placed++;
+
+        const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+        shuffleInPlace(dirs);
+        for(const [dx,dy] of dirs){
+          const nx = x + dx, ny = y + dy;
+          if(nx < r.x || nx >= r.x + r.w || ny < r.y || ny >= r.y + r.h) continue;
+          const nk = keyXY(nx,ny);
+          if(seen.has(nk)) continue;
+          if(Math.random() < 0.85) q.push([nx,ny]);
+        }
+      }
+    }
+    return;
+  }
+  if(!rooms || rooms.length === 0) return;
+  if(depth < ENV_MIN_DEPTH) return;
+  if(Math.random() > ENV_LEVEL_CHANCE) return;
+
+  const theme = choice(ENV_THEMES);
+  lvl.envTheme = theme.name;
+
+  const startRoom = findRoomContaining(lvl, startPos);
+
+  // Eligible rooms: exclude the start room so the opening stays readable.
+  const eligible = rooms.filter(r => {
+    if(!r) return false;
+    if(startRoom && r === startRoom) return false;
+    // Also skip tiny rooms to avoid visual clutter.
+    return (r.w * r.h) >= 30;
+  });
+
+  if(eligible.length === 0) return;
+
+  // Pick a small number of rooms for cohesive patches.
+  shuffleInPlace(eligible);
+  const maxRooms = Math.min(ENV_ROOMS_MAX, eligible.length);
+  const minRooms = Math.min(ENV_ROOMS_MIN, maxRooms);
+  const roomCount = randInt(minRooms, maxRooms);
+  const chosenRooms = eligible.slice(0, roomCount);
+
+  for(const r of chosenRooms){
+    if(Math.random() > ENV_ROOM_CHANCE) continue;
+
+    const area = r.w * r.h;
+    const cap = Math.floor(area * ENV_MAX_FRACTION);
+    if(cap <= 0) continue;
+
+    // Target fill: less random, more cohesive (closer to cap but still under it)
+    const target = randInt(Math.max(4, Math.floor(cap * 0.45)), cap);
+
+    const envType = weightedChoice(theme.types, theme.weights);
+
+    // Seed position inside room interior
+    let sx = randInt(r.x + 1, r.x + r.w - 2);
+    let sy = randInt(r.y + 1, r.y + r.h - 2);
+
+    // Grow a patch by BFS
+    const q = [[sx, sy]];
+    const seen = new Set();
+    let placed = 0;
+
+    while(q.length && placed < target){
+      const [x,y] = q.shift();
+      const k = keyXY(x,y);
+      if(seen.has(k)) continue;
+      seen.add(k);
+
+      // Only overlay on floor inside this room
+      if(x < r.x || x >= r.x + r.w || y < r.y || y >= r.y + r.h) continue;
+      if(lvl.tiles[x][y] !== TILE.FLOOR) continue;
+
+      // Don't overwrite existing environment
+      if(lvl.env[x][y]) continue;
+
+      lvl.env[x][y] = envType;
+      placed++;
+
+      // Push neighbors with slight bias (keeps it blobby)
+      const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+      shuffleInPlace(dirs);
+      for(const [dx,dy] of dirs){
+        const nx = x + dx, ny = y + dy;
+        if(nx < r.x || nx >= r.x + r.w || ny < r.y || ny >= r.y + r.h) continue;
+        const nk = keyXY(nx,ny);
+        if(seen.has(nk)) continue;
+        if(Math.random() < 0.85) q.push([nx,ny]);
+      }
+    }
+  }
+}
+
+function generateLevel(depth){
+    const tiles = makeGrid(MAP_W, MAP_H, TILE.ROCK);
+    const seen = makeGrid(MAP_W, MAP_H, false);
+    const visible = makeGrid(MAP_W, MAP_H, false);
+    const env = makeGrid(MAP_W, MAP_H, 0);
+    const secret = makeGrid(MAP_W, MAP_H, false);
+    const secretDoors = new Map();
+
+    const rooms = [];
+    const roomTarget = randInt(ROOMS_MIN, ROOMS_MAX);
+
+    for(let i=0;i<ROOM_ATTEMPTS && rooms.length<roomTarget;i++){
+      const w = randInt(ROOM_W[0], ROOM_W[1]);
+      const h = randInt(ROOM_H[0], ROOM_H[1]);
+      const x = randInt(2, MAP_W - w - 3);
+      const y = randInt(2, MAP_H - h - 3);
+      const r = {x,y,w,h, cx: Math.floor(x+w/2), cy: Math.floor(y+h/2)};
+      if(rooms.some(o => rectsOverlapInflated(r,o,2))) continue;
+      carveRoom(tiles, r);
+      rooms.push(r);
+    }
+    if(rooms.length < 5){
+      const r = {x: 10, y: 6, w: 22, h: 10, cx: 21, cy: 11};
+      carveRoom(tiles, r);
+      rooms.push(r);
+    }
+
+    rooms.sort((a,b)=>a.cx-b.cx);
+    for(let i=1;i<rooms.length;i++){
+      const a=rooms[i-1], b=rooms[i];
+      carveCorridor(tiles, a.cx,a.cy,b.cx,b.cy);
+    }
+
+    const startPos = findOpenSpot(tiles, rooms[0]);
+    const downPos = findOpenSpot(tiles, rooms[rooms.length-1]);
+    tiles[downPos.x][downPos.y] = TILE.DOWN;
+
+    const items = new Map();
+    const traps = new Map();
+    const monsters = new Map();
+    const traders = new Map();
+
+    const lvl = {
+      tiles, seen, visible, env, items, traps, monsters, traders,
+      startPos, downPos, player: {...startPos},
+      secret, secretDoors,
+      lockedDoors: [],
+      doorCoords: []
+    };
+
+    addSecretRooms(lvl, depth);
+
+    lvl.doorCoords = placeDoorsOnChokepoints(lvl);
+    lvl.lockedDoors = lockDoorsNoAdjacency(tiles, lvl.doorCoords, startPos);
+
+    // Trader spawn
+    if(chance(TRADER_SPAWN_CHANCE)){
+      for(let tries=0; tries<8000; tries++){
+        const x = randInt(2, MAP_W-3);
+        const y = randInt(2, MAP_H-3);
+        if(lvl.secret[x][y]) continue;
+        const t = tiles[x][y];
+        if(!(t===TILE.FLOOR || t===TILE.CORR)) continue;
+        if((x===startPos.x && y===startPos.y) || (x===downPos.x && y===downPos.y)) continue;
+        traders.set(keyXY(x,y), { name: "Trader" });
+        break;
+      }
+    }
+    const forbidOnTrader = (x,y) => traders.has(keyXY(x,y));
+
+    const isNormal = (x,y) => !lvl.secret[x][y];
+    const isSecret = (x,y) => lvl.secret[x][y];
+
+    // Vitality Shrine (optional permanent HP growth)
+    // DEBUG: force a shrine into the starting room for testing
+    if(DEBUG && game.hpMax < MAX_HP_CAP){
+      const startRoom = rooms.find(r =>
+        startPos.x >= r.x && startPos.x < (r.x + r.w) &&
+        startPos.y >= r.y && startPos.y < (r.y + r.h)
+      );
+      if(startRoom){
+        let placed = false;
+        for(let tries=0; tries<8000 && !placed; tries++){
+          const x = randInt(startRoom.x + 1, startRoom.x + startRoom.w - 2);
+          const y = randInt(startRoom.y + 1, startRoom.y + startRoom.h - 2);
+          if(!isNormal(x,y)) continue;
+          if(forbidOnTrader(x,y)) continue;
+          if(x===startPos.x && y===startPos.y) continue;
+          const k = keyXY(x,y);
+          if(items.has(k)) continue;
+          const t = tiles[x][y];
+          if(!(t===TILE.FLOOR || t===TILE.CORR)) continue;
+          if(t===TILE.DOWN || t===TILE.SDOWN) continue;
+          if(t===TILE.DOOR_C || t===TILE.DOOR_O || t===TILE.LDOOR_C) continue;
+          items.set(k, { type: ENT.SHRINE });
+          placed = true;
+        }
+      }
+    } else if(Math.random() < VITALITY_SHRINE_CHANCE && game.hpMax < MAX_HP_CAP){
+      // keep away from start for fairness
+      const minDist = 6;
+      scatter(items, tiles, 1, () => ({ type: ENT.SHRINE }),
+        (x,y) => isNormal(x,y) && (Math.max(Math.abs(x-startPos.x), Math.abs(y-startPos.y)) >= minDist),
+        forbidOnTrader
+      );
+    }
+
+
+    // Torches
+    const torchCount = TORCH_BASE_COUNT + Math.floor(depth / TORCH_BONUS_EVERY_LEVELS) * TORCH_PER_LEVEL_BONUS;
+    scatter(items, tiles, torchCount, () => ({ type: ENT.TORCH }), isNormal, forbidOnTrader);
+
+    // Base spawns (excluding most chests: key chests will add more)
+    const potionCount = randInt(3,5) + Math.floor(depth/5);
+    const chestCount  = randInt(1,2) + Math.floor(depth/9);
+    const trapCount   = randInt(2,4) + Math.floor(depth/5);
+    const monsterCount= randInt(3,6) + Math.floor(depth/3);
+
+    scatter(items, tiles, potionCount, () => ({ type: ENT.POTION, potion: rollPotionType(depth) }), isNormal, forbidOnTrader);
+
+    // Normal gold-only chests (key chests added later)
+    scatter(items, tiles, chestCount,  () => ({ type: ENT.CHEST, gold: randInt(6,16) + depth*2, keys: 0 }), isNormal, forbidOnTrader);
+
+    if(depth === 1){
+      // Guaranteed starting weapon placed on level 1 (player begins unarmed)
+      const r0 = rooms[0] || {x:2,y:2,w:10,h:6};
+      let placed = false;
+      for(let tries=0; tries<6000 && !placed; tries++){
+        const x = randInt(r0.x+1, r0.x+r0.w-2);
+        const y = randInt(r0.y+1, r0.y+r0.h-2);
+        if(x===startPos.x && y===startPos.y) continue;
+        if(lvl.secret[x][y]) continue;
+        if(tiles[x][y] !== TILE.FLOOR) continue;
+        const k = keyXY(x,y);
+        if(items.has(k) || traps.has(k) || monsters.has(k) || traders.has(k)) continue;
+        items.set(k, { type: ENT.WEAPON, atk: 3, name: "Dagger" });
+        placed = true;
+      }
+      if(!placed){
+        // Fallback: anywhere passable not on start
+        for(let tries=0; tries<6000 && !placed; tries++){
+          const x = randInt(2, MAP_W-3);
+          const y = randInt(2, MAP_H-3);
+          if(x===startPos.x && y===startPos.y) continue;
+          if(lvl.secret[x][y]) continue;
+          const t = tiles[x][y];
+          if(!(t===TILE.FLOOR || t===TILE.CORR)) continue;
+          const k = keyXY(x,y);
+          if(items.has(k) || traps.has(k) || monsters.has(k) || traders.has(k)) continue;
+          items.set(k, { type: ENT.WEAPON, atk: 3, name: "Dagger" });
+          placed = true;
+        }
+      }
+    } else if(Math.random() < 0.35){
+      scatter(items, tiles, 1, () => ({ type: ENT.WEAPON, atk: weaponAtkForDepth(depth), name: weaponNameForDepth(depth) }), isNormal, forbidOnTrader);
+    }
+
+    scatter(traps, tiles, trapCount, () => ({ revealed:false, dmg: randInt(2,5)+Math.floor(depth/6) }), isNormal, forbidOnTrader);
+    for(let i=0;i<monsterCount;i++){
+      scatter(monsters, tiles, 1, () => makeMonsterForDepth(depth), isNormal, forbidOnTrader);
+    }
+
+    // Secret loot
+    const secretPotions = Math.max(1, Math.floor(potionCount/2));
+    const secretChests  = Math.max(1, Math.floor(chestCount/1.5));
+    scatter(items, tiles, secretPotions, () => ({ type: ENT.POTION, potion: rollPotionType(depth) }), isSecret, forbidOnTrader);
+    scatter(items, tiles, secretChests, () => ({ type: ENT.CHEST, gold: (randInt(6,16) + depth*2) * SECRET_REWARD_MULT, keys: 0 }), isSecret, forbidOnTrader);
+    scatter(items, tiles, Math.max(1, Math.floor(torchCount/3)), () => ({ type: ENT.TORCH }), isSecret, forbidOnTrader);
+    const secretTrapCount = Math.max(2, Math.floor(trapCount * SECRET_TRAP_MULT));
+    scatter(traps, tiles, secretTrapCount, () => ({ revealed:false, dmg: randInt(2,5)+Math.floor(depth/6) + 1 }), isSecret, forbidOnTrader);
+
+    // Place key chests AFTER doors exist (so it knows exact needed key count)
+    placeKeyChests(lvl, depth);
+
+    // Boss on 20
+    if(depth === 20){
+      for(let tries=0; tries<9000; tries++){
+        const x = randInt(2, MAP_W-3);
+        const y = randInt(2, MAP_H-3);
+        if(!isNormal(x,y)) continue;
+        const t = tiles[x][y];
+        if(!(t===TILE.FLOOR || t===TILE.CORR)) continue;
+        const k = keyXY(x,y);
+        if(monsters.has(k) || traders.has(k)) continue;
+        monsters.set(k, { glyph: ENT.HORROR, hp: 34, atk: 9, name: "Deep Horror" });
+        break;
+      }
+    }
+
+    
+    // Step 3: populate room environments (render-only overlays)
+    placeLevelEnvironments(lvl, rooms, depth, startPos);
+return lvl;
+  }
+
+  // ---------- SECRET DOOR REVEAL ----------
+  function tryRevealAdjacentSecretDoors(lvl){
+    const px = lvl.player.x, py = lvl.player.y;
+    for(let dx=-1; dx<=1; dx++){
+      for(let dy=-1; dy<=1; dy++){
+        if(dx===0 && dy===0) continue;
+        const x = px + dx, y = py + dy;
+        if(x<1||y<1||x>=MAP_W-1||y>=MAP_H-1) continue;
+
+        const k = keyXY(x,y);
+        if(!lvl.secretDoors.has(k)) continue;
+        const sd = lvl.secretDoors.get(k);
+        if(sd.discovered) continue;
+        if(lvl.tiles[x][y] !== TILE.ROCK) continue;
+
+        if(chance(SECRET_REVEAL_CHANCE)){
+          sd.discovered = true;
+          lvl.tiles[x][y] = TILE.SD_C;
+          logMsg("A secret door reveals itself!");
+        }
+      }
+    }
+  }
+
+  // ---------- FOV / LOS ----------
+  function isDoorClosed(t){ return (t === TILE.DOOR_C || t === TILE.SD_C || t === TILE.LDOOR_C); }
+  function isBlockingTile(lvl, x, y){
+    const t = lvl.tiles[x][y];
+    return (t === TILE.ROCK) || isDoorClosed(t);
+  }
+  function hasLos(lvl, x0,y0,x1,y1){
+    let dx = Math.abs(x1-x0), sx = x0<x1 ? 1 : -1;
+    let dy = -Math.abs(y1-y0), sy = y0<y1 ? 1 : -1;
+    let err = dx + dy;
+    let x=x0, y=y0;
+    while(true){
+      if(x===x1 && y===y1) return true;
+      if(!(x===x0 && y===y0) && isBlockingTile(lvl, x, y)) return false;
+      const e2 = 2*err;
+      if(e2 >= dy){ err += dy; x += sx; }
+      if(e2 <= dx){ err += dx; y += sy; }
+      if(x<0||y<0||x>=MAP_W||y>=MAP_H) return false;
+    }
+  }
+  function computeFov(lvl){
+    const R = currentVisionRadius();
+    for(let x=0;x<MAP_W;x++) for(let y=0;y<MAP_H;y++) lvl.visible[x][y]=false;
+    const px = lvl.player.x, py = lvl.player.y;
+    for(let dx=-R; dx<=R; dx++){
+      for(let dy=-R; dy<=R; dy++){
+        const x = px + dx, y = py + dy;
+        if(x<0||y<0||x>=MAP_W||y>=MAP_H) continue;
+        if(dx*dx + dy*dy > R*R) continue;
+        if(hasLos(lvl, px, py, x, y)){
+          lvl.visible[x][y] = true;
+          lvl.seen[x][y] = true;
+        }
+      }
+    }
+    for(const [k, tr] of lvl.traps.entries()){
+      const {x,y} = parseKey(k);
+      if(lvl.visible[x][y]) tr.revealed = true;
+    }
+  }
+
+  // ---------- TRADER PROMPT DEFAULT N ----------
+  function handlePromptOnMoveStart(prevPos){
+    if(!game.prompt) return;
+    const p = game.prompt;
+    if(!prevPos) return;
+    if(prevPos.x !== p.x || prevPos.y !== p.y) return;
+
+    if(p.type === 'trade'){
+      logMsg("Trade declined.");
+      clearPrompt();
+      return;
+    }
+    if(p.type === 'shrine'){
+      // leaving without answering defaults to N
+      resolveShrine(false);
+      return;
+    }
+  }
+  function openTraderPromptIfStanding(lvl){
+    const p = lvl.player;
+    const k = keyXY(p.x,p.y);
+    if(!lvl.traders.has(k)) return;
+    setPrompt({
+      type: 'trade',
+      x: p.x,
+      y: p.y,
+      costPotion: TRADER_POTION_COST,
+      costWeapon: TRADER_WEAPON_COST,
+      atkBonus: TRADER_WEAPON_ATK_BONUS,
+      selection: 'A'
+    });
+    logMsg("A trader offers goods for gold.");
+  }
+
+  function resolveTrade(accepted){
+    const lvl = getLevel(game.depth);
+    const p = game.prompt;
+    if(!p || p.type !== 'trade') return;
+
+    const onTile = (lvl.player.x === p.x && lvl.player.y === p.y);
+    if(!onTile){ clearPrompt(); return; }
+
+    if(!accepted){
+      logMsg("Trade declined.");
+      clearPrompt();
+      return;
+    }
+
+    const sel = p.selection || 'A';
+    if(sel === 'A'){
+      if(game.gold < p.costPotion){
+        logMsg(`Not enough gold. Potion costs ${p.costPotion}g.`);
+        clearPrompt();
+        return;
+      }
+      if(game.inv.potions.length >= POTION_CAP){
+        logMsg(`Potion satchel is full (cap ${POTION_CAP}).`);
+        clearPrompt();
+        return;
+      }
+      game.gold -= p.costPotion;
+      const potion = chance(0.60) ? POTION.HEAL : rollPotionType(game.depth);
+      game.inv.potions.push(potion);
+      logMsg(`Bought a ${POTION_NAME[potion]} potion for ${p.costPotion}g.`);
+      clearPrompt();
+      return;
+    }
+
+    if(sel === 'B'){
+      if(game.gold < p.costWeapon){
+        logMsg(`Not enough gold. Weapon upgrade costs ${p.costWeapon}g.`);
+        clearPrompt();
+        return;
+      }
+      game.gold -= p.costWeapon;
+      game.atk += TRADER_WEAPON_ATK_BONUS;
+      game.weaponName = `${game.weaponName}+`;
+      logMsg(`Upgraded weapon! ATK +${TRADER_WEAPON_ATK_BONUS} for ${p.costWeapon}g.`);
+      clearPrompt();
+      return;
+    }
+
+    clearPrompt();
+  }
+
+  function resolveShrine(accepted){
+    const lvl = getLevel(game.depth);
+    const p = game.prompt;
+    if(!p || p.type !== 'shrine') return;
+
+    // shrine is single-use; remove it whenever resolved
+    const k = keyXY(p.x, p.y);
+    lvl.items.delete(k);
+
+    if(!accepted){
+      logMsg("Shrine vanishes.");
+      clearPrompt();
+      return;
+    }
+
+    if(game.hpMax >= MAX_HP_CAP){
+      logMsg("The shrine is dormant. You feel no further growth is possible.");
+      logMsg("Shrine vanishes.");
+      clearPrompt();
+      return;
+    }
+
+    // Determine payment: potion preferred, otherwise gold
+    let paidMsg = "";
+    if(game.inv.potions.length > 0){
+      const idx = randInt(0, game.inv.potions.length - 1);
+      const lost = game.inv.potions.splice(idx, 1)[0];
+      paidMsg = `(lost a ${POTION_NAME[lost]} potion)`;
+    } else {
+      const cost = SHRINE_BASE_GOLD_COST + game.depth * SHRINE_GOLD_PER_LEVEL;
+      if(game.gold < cost){
+        logMsg("You have nothing to offer the shrine.");
+        logMsg("Shrine vanishes.");
+        clearPrompt();
+        return;
+      }
+      game.gold -= cost;
+      paidMsg = `(paid ${cost} gold)`;
+    }
+
+    game.hpMax += 1;
+    game.hp = Math.min(game.hpMax, game.hp + 1);
+
+    logMsg(`Vitality surges through you. +1 Max HP ${paidMsg}.`);
+    logMsg("Shrine vanishes.");
+    clearPrompt();
+  }
+
+  // ---------- MOVEMENT / COMBAT ----------
+  function tilePassable(lvl, x, y){
+    const t = lvl.tiles[x][y];
+    if(t === TILE.ROCK) return false;
+    if(t === TILE.DOOR_C || t === TILE.SD_C) return false;
+    if(t === TILE.LDOOR_C){
+      if(hasTransmute()) return true;
+      return false;
+    }
+    return true;
+  }
+
+  function playerAttack(lvl, mx, my){
+    playSfx('attack');
+    const k = keyXY(mx,my);
+    const m = lvl.monsters.get(k);
+    let dmg = randInt(1, game.atk);
+    if(!game.weaponEquipped){
+      dmg = Math.max(1, Math.floor(dmg/2));
+    }
+    m.hp -= dmg;
+    logMsg(`Hit ${m.name} for ${dmg}.`);
+    if(m.hp <= 0){
+      lvl.monsters.delete(k);
+      const bounty = randInt(1,4) + Math.floor(game.depth/4);
+      game.gold += bounty;
+      logMsg(`${m.name} falls. +${bounty} gold.`);
+    }
+  }
+
+  function monstersAct(lvl){
+    const p = lvl.player;
+    const next = new Map(lvl.monsters);
+
+    for(const [k, m] of lvl.monsters.entries()){
+      const {x,y} = parseKey(k);
+      const dist = Math.max(Math.abs(p.x-x), Math.abs(p.y-y));
+
+      if(dist === 1){
+        const dmg = randInt(1, m.atk);
+        if(hasInvincible()){
+          logMsg(`${m.name} strikes — but it cannot harm you.`);
+        } else {
+          game.hp -= dmg;
+          playSfx('damage');
+          logMsg(`${m.name} hits for ${dmg}.`);
+          if(game.hp <= 0){
+            game.hp = 0;
+            lvl.monsters = next;
+            endGameLose();
+            return;
+          }
+        }
+        continue;
+      }
+
+      const inSight = lvl.visible[x]?.[y] === true;
+      const canChase = (!hasInvis());
+
+      let dx=0, dy=0;
+
+      if(inSight && canChase && dist <= 8 && Math.random() < 0.65){
+        dx = clamp(p.x - x, -1, 1);
+        dy = clamp(p.y - y, -1, 1);
+      } else if(Math.random() < 0.35){
+        dx = randInt(-1,1);
+        dy = randInt(-1,1);
+      } else {
+        continue;
+      }
+
+      const nx = x + dx, ny = y + dy;
+      const nk = keyXY(nx,ny);
+      if(nx<1||ny<1||nx>=MAP_W-1||ny>=MAP_H-1) continue;
+      if(nx===p.x && ny===p.y) continue;
+      if(next.has(nk)) continue;
+      if(!tilePassable(lvl, nx, ny)) continue;
+
+      // Slime slows monster movement (half speed)
+      const curE = envAt(lvl, x, y);
+      const nextE = envAt(lvl, nx, ny);
+      const inSlime = (curE === 'slime' || nextE === 'slime');
+      if(inSlime){
+        if(!m._slimeWait){
+          m._slimeWait = true;
+          next.set(k, m); // stay put this turn
+          continue;
+        } else {
+          m._slimeWait = false;
+        }
+      } else {
+        m._slimeWait = false;
+      }
+
+      next.delete(k);
+      next.set(nk, m);
+    }
+
+    lvl.monsters = next;
+  }
+
+  function openDoorIfPresent(lvl, x, y){
+    const t = lvl.tiles[x][y];
+
+    if(t === TILE.DOOR_C){
+      lvl.tiles[x][y] = TILE.DOOR_O;
+      logMsg("Opened a door.");
+      return true;
+    }
+
+    if(t === TILE.LDOOR_C){
+      if(hasTransmute()){
+        logMsg("You phase through the locked door.");
+        return false;
+      }
+
+      if(game.inv.keys <= 0){
+        if(LOCKED_DOOR_BREAKS_WITHOUT_KEY){
+          lvl.tiles[x][y] = TILE.LDOOR_O;
+          if(hasInvincible()){
+            logMsg("No key — forced the lock. It shatters harmlessly.");
+          } else if(LOCK_BREAK_DAMAGE > 0){
+            game.hp -= LOCK_BREAK_DAMAGE;
+            logMsg(`No key — forced the lock. Door breaks open! (-${LOCK_BREAK_DAMAGE} HP)`);
+            if(game.hp <= 0){
+              game.hp = 0;
+              endGameLose();
+              return true;
+            }
+          } else {
+            logMsg("No key — forced the lock. Door breaks open!");
+          }
+        } else {
+          logMsg("Locked. A key is needed.");
+        }
+        return true;
+      }
+
+      game.inv.keys--;
+      lvl.tiles[x][y] = TILE.LDOOR_O;
+      logMsg("Unlocked and opened the door.");
+      return true;
+    }
+
+    if(t === TILE.SD_C){
+      lvl.tiles[x][y] = TILE.SD_O;
+      logMsg("Opened a secret door.");
+      return true;
+    }
+
+    return false;
+  }
+
+  const DIRS = {
+    'w':[0,-1], 'a':[-1,0], 's':[0,1], 'd':[1,0],
+    'q':[-1,-1], 'e':[1,-1], 'z':[-1,1], 'c':[1,1],
+    '.':[0,0]
+  };
+
+  function tryMove(dx, dy){
+    if(game.ended) return;
+
+    const lvl = getLevel(game.depth);
+    const p = lvl.player;
+    const prev = {x:p.x, y:p.y};
+
+    handlePromptOnMoveStart(prev);
+
+    if(dx===0 && dy===0){
+      playSfx('wait');
+      monstersAct(lvl);
+
+      // Rest heal: +0.25 HP per wait turn, capped at 3 HP healed per level
+      const REST_CAP = 3;
+      game.restHealedThisLevel = game.restHealedThisLevel || 0;
+
+      if(game.hp < game.hpMax && game.restHealedThisLevel < REST_CAP){
+        game.restFrac = (game.restFrac || 0) + 0.25;
+
+        // Only allow healing up to remaining cap
+        const remaining = REST_CAP - game.restHealedThisLevel;
+        const gainRaw = Math.floor(game.restFrac);
+        const gain = Math.min(remaining, gainRaw);
+
+        if(gain > 0){
+          game.hp = Math.min(game.hpMax, game.hp + gain);
+          game.restHealedThisLevel += gain;
+          game.restFrac = game.restFrac - gain;
+          logMsg("Resting, you healed for 1HP");
+        }
+
+        if(game.restHealedThisLevel >= REST_CAP){
+          game.restFrac = 0;
+          if(!game.restCapMsgShown){
+            logMsg("You feel no further benefit from resting here.");
+            game.restCapMsgShown = true;
+          }
+        }
+      } else {
+        // No benefit (either full HP or cap reached)
+        game.restFrac = 0;
+        if(game.restHealedThisLevel >= REST_CAP && !game.restCapMsgShown){
+          logMsg("You feel no further benefit from resting here.");
+          game.restCapMsgShown = true;
+        }
+      }
+
+      computeFov(lvl);
+      renderAll();
+      return;
+    }
+
+    const nx = p.x + dx, ny = p.y + dy;
+    if(nx<0||ny<0||nx>=MAP_W||ny>=MAP_H){ playSfx('bump'); return; }
+
+    if(dx!==0 && dy!==0){
+      const ok1 = tilePassable(lvl, p.x+dx, p.y);
+      const ok2 = tilePassable(lvl, p.x, p.y+dy);
+      if(!ok1 && !ok2){ playSfx('bump'); return; }
+    }
+
+    const mk = keyXY(nx,ny);
+
+    if(lvl.monsters.has(mk)){
+      musicMaybeTrigger('monsterEncounter');
+      playerAttack(lvl, nx, ny);
+      monstersAct(lvl);
+      computeFov(lvl);
+      renderAll();
+      return;
+    }
+
+    const doorT = lvl.tiles[nx][ny];
+    const isDoorTile = (doorT === TILE.DOOR_C || doorT === TILE.SD_C || doorT === TILE.LDOOR_C);
+    if(isDoorTile){
+      const consumed = openDoorIfPresent(lvl, nx, ny);
+      if(consumed){
+        monstersAct(lvl);
+        computeFov(lvl);
+        renderAll();
+        return;
+      }
+    }
+
+    if(!tilePassable(lvl, nx, ny)){ playSfx('bump'); return; }
+
+    // Slime slows movement: first keypress consumes a step without moving.
+    const curEnv = envAt(lvl, p.x, p.y);
+    const nextEnv = envAt(lvl, nx, ny);
+    const inSlimeMove = (curEnv === 'slime' || nextEnv === 'slime');
+    if(inSlimeMove){
+      if(!game.slimeWait){
+        game.slimeWait = true;
+        logMsg("Slime slows your passage.");
+        advanceTorchOnMove();
+        tickEffectsOnStep();
+        if(game.ended) { renderAll(true); return; }
+        monstersAct(lvl);
+        computeFov(lvl);
+        renderAll();
+        return;
+      } else {
+        game.slimeWait = false;
+      }
+    } else {
+      game.slimeWait = false;
+    }
+
+    p.x = nx; p.y = ny;
+
+    playSfx('step');
+
+    // Roaming ambience (situational, probabilistic)
+    musicMaybeTrigger('roam');
+
+    applyEnvironmentOnEnter(lvl, prev.x, prev.y, p.x, p.y);
+    if(game.ended) { renderAll(true); return; }
+
+    advanceTorchOnMove();
+    tickEffectsOnStep();
+    if(game.ended) { renderAll(true); return; }
+
+    tryRevealAdjacentSecretDoors(lvl);
+
+    // Traps
+    if(lvl.traps.has(mk)){
+      const tr = lvl.traps.get(mk);
+      tr.revealed = true;
+
+      if(hasInvincible()){
+        logMsg("A trap triggers — but you are invincible.");
+      } else if(hasTransmute()){
+        logMsg("You float over the trap unharmed.");
+      } else {
+        game.hp -= tr.dmg;
+        playSfx('damage');
+        logMsg(`A trap springs! Took ${tr.dmg} damage.`);
+        if(game.hp <= 0){
+          game.hp = 0;
+          endGameLose();
+          return;
+        }
+      }
+    }
+
+    // Items
+    if(lvl.items.has(mk)){
+      const it = lvl.items.get(mk);
+
+      if(it.type === ENT.POTION){
+        if(game.inv.potions.length >= POTION_CAP){
+          logMsg(`Potion satchel full (cap ${POTION_CAP}). Left potion behind.`);
+        } else {
+          game.inv.potions.push(it.potion || POTION.HEAL);
+          playSfx('pickup');
+          logMsg(`Picked up a ${POTION_NAME[it.potion || POTION.HEAL]} potion (!).`);
+          lvl.items.delete(mk);
+        }
+      } else if(it.type === ENT.CHEST){
+        const gold = it.gold || 0;
+        game.gold += gold;
+
+        const foundKeys = it.keys || 0;
+        if(foundKeys > 0){
+          const space = KEY_CAP - game.inv.keys;
+          const take = Math.max(0, Math.min(space, foundKeys));
+          game.inv.keys += take;
+
+          if(take === foundKeys){
+            logMsg(`Opened a chest: +${gold} gold and +${take} keys.`);
+          } else {
+            const left = foundKeys - take;
+            logMsg(`Opened a chest: +${gold} gold and +${take} keys (key ring full; ${left} left behind).`);
+          }
+        } else {
+          logMsg(`Found treasure ($): +${gold} gold.`);
+        }
+        playSfx('pickup');
+        lvl.items.delete(mk);
+      } else if(it.type === ENT.WEAPON){
+        game.atk = Math.max(game.atk, it.atk);
+        game.weaponName = it.name;
+        playSfx('pickup');
+        game.weaponEquipped = true;
+        logMsg(`Weapon found (ƪ): ${it.name} (ATK ${it.atk}).`);
+        lvl.items.delete(mk);
+      } else if(it.type === ENT.TORCH){
+        const cnt = it.count || 1;
+        const space = TORCH_CAP - game.inv.torches;
+        const take = Math.max(0, Math.min(space, cnt));
+
+        if(take <= 0){
+          logMsg(`Torch pack full (cap ${TORCH_CAP}). Left torch behind.`);
+        } else {
+          game.inv.torches += take;
+          logMsg(take === 1 ? "Picked up a torch (t)." : `Picked up ${take} torches (t).`);
+
+          if(take >= cnt){
+            lvl.items.delete(mk);
+          } else {
+            it.count = cnt - take;
+            lvl.items.set(mk, it);
+          }
+
+          if(!game.torch.lit && game.torch.radius === VISION_DARK){
+            maybeAutoLightTorch();
+          }
+        }
+      } else if(it.type === ENT.SHRINE){
+        // Vitality Shrine prompt
+        setPrompt({ type: 'shrine', x: p.x, y: p.y });
+        logMsg("The shrine pulses with life. Gain +1 vitality at a cost? (Y/N)");
+        renderAll();
+        return;
+      } else if(it.type === "__LOOSE_KEY__"){
+        if(game.inv.keys >= KEY_CAP){
+          logMsg(`Key ring full (cap ${KEY_CAP}). Left key behind.`);
+        } else {
+          game.inv.keys++;
+          playSfx('pickup');
+          logMsg("Picked up a key.");
+          lvl.items.delete(mk);
+        }
+      }
+    }
+
+    openTraderPromptIfStanding(lvl);
+
+    monstersAct(lvl);
+    computeFov(lvl);
+    renderAll();
+  }
+
+  function tryDescend(){
+    if(game.ended) return;
+
+    const lvl = getLevel(game.depth);
+    const {x,y} = lvl.player;
+    const t = lvl.tiles[x][y];
+
+    if(!(t === TILE.DOWN || t === TILE.SDOWN)){
+      logMsg("No stairs here.");
+      renderAll();
+      return;
+    }
+
+    if(game.depth === 20){
+      endGameWin();
+      return;
+    }
+
+    const nextDepth = game.depth + 1;
+    loadLevel(nextDepth);
+    playSfx('descend');
+    playSfx('descend');
+
+    // Music: descending interlude
+    musicMaybeTrigger('descend', true);
+
+    logMsg(t === TILE.SDOWN
+      ? `Secret shortcut! Dropped to level ${String(nextDepth).padStart(2,'0')}.`
+      : `Descended to level ${String(nextDepth).padStart(2,'0')}.`
+    );
+
+    const heal = randInt(1,3);
+    game.hp = Math.min(game.hpMax, game.hp + heal);
+    renderAll();
+  }
+
+  function drinkHealingPotion(){
+    if(game.ended) return;
+
+    // Prevent wasting healing when already at full HP.
+    if(game.hp >= game.hpMax){
+      logMsg("HP is already full.");
+      renderAll();
+      return;
+    }
+
+    if(!consumePotionByType(POTION.HEAL)){
+      logMsg("No healing potions.");
+      renderAll();
+      return;
+    }
+
+    playSfx('drink');
+
+    const heal = randInt(POTION_HEAL_RANGE[0], POTION_HEAL_RANGE[1]);
+    game.hp = Math.min(game.hpMax, game.hp + heal);
+    logMsg(`Drank Healing (purple). +${heal} HP.`);
+    renderAll();
+  }
+
+  function drinkPotionType(type){
+    if(game.ended) return;
+
+    if(!consumePotionByType(type)){
+      logMsg(`No ${POTION_NAME[type]} potions.`);
+      renderAll();
+      return;
+    }
+
+    playSfx('drink');
+
+    if(type === POTION.POISON){
+      game.effects.poison = Math.max(game.effects.poison, POISON_STEPS);
+      logMsg(`Drank Poison (green). ${POISON_STEPS} steps of sickness!`);
+      renderAll();
+      return;
+    }
+
+    if(type === POTION.INVIS){
+      game.effects.invis = Math.max(game.effects.invis, INVIS_STEPS);
+      logMsg(`Drank Invisibility (grey). Monsters lose your scent (${INVIS_STEPS}).`);
+      renderAll();
+      return;
+    }
+
+    if(type === POTION.TRANSMUTE){
+      game.effects.transmute = Math.max(game.effects.transmute, TRANSMUTE_STEPS);
+      logMsg(`Drank Transmutation (ochre). You float & phase (${TRANSMUTE_STEPS}).`);
+      renderAll();
+      return;
+    }
+
+    if(type === POTION.INVINC){
+      game.effects.invincible = Math.max(game.effects.invincible, INVINCIBLE_STEPS);
+      logMsg(`Drank Invincibility (red). Nothing can harm you (${INVINCIBLE_STEPS}).`);
+      renderAll();
+      return;
+    }
+
+    if (type === POTION.TELE) {
+        const lvl = getLevel(game.depth);
+        const pos = findRandomOpenTile(lvl);
+
+        lvl.player.x = pos.x;
+        lvl.player.y = pos.y;
+
+        logMsg(`Your body tingles as you are transported to an unknown location.`);
+
+        computeFov(lvl);
+        renderAll();
+        return;
+    }
+
+    logMsg("Drank a strange potion… nothing happens.");
+    renderAll();
+  }
+
+  
+  // ---------- RENDERING ----------
+  function spanChar(ch, color, dim=false){
+    const safe = ch === ' ' ? '&nbsp;' : escapeHtml(ch);
+    const cls = dim ? ' class="dim"' : '';
+    return `<span style="color:${color}"${cls}>${safe}</span>`;
+  }
+
+  function baseColorFor(lvl, x, y, glyph){
+    if(glyph === '+' || glyph === '–' || glyph === '|') return COL.wall;
+    const t = lvl.tiles[x][y];
+    if(t === TILE.FLOOR) return COL.floor;
+    if(t === TILE.CORR) return COL.corr;
+    if(t === TILE.DOOR_C || t === TILE.DOOR_O) return COL.door;
+    if(t === TILE.LDOOR_C) return COL.locked;
+    if(t === TILE.SD_C || t === TILE.SD_O) return COL.sdoor;
+    if(t === TILE.DOWN) return COL.stairs;
+    if(t === TILE.SDOWN) return COL.shortcut;
+    return COL.rock;
+  }
+
+  function colorForEntity(it){
+    if(it.type === ENT.CHEST) return COL.chest;
+    if(it.type === ENT.WEAPON) return COL.weapon;
+    if(it.type === ENT.TORCH) return COL.torch;
+    if(it.type === ENT.SHRINE) return COL.shrine;
+    if(it.type === ENT.POTION) return POTION_COLOR[it.potion || POTION.HEAL] || COL.potion_purple;
+    return COL.fg;
+  }
+
+  function isPassableTerrainForWalls(lvl, x, y){
+    if(x<0||y<0||x>=MAP_W||y>=MAP_H) return false;
+    const t = lvl.tiles[x][y];
+    return (
+      t === TILE.FLOOR || t === TILE.CORR ||
+      t === TILE.DOOR_C || t === TILE.DOOR_O ||
+      t === TILE.LDOOR_C || t === TILE.LDOOR_O ||
+      t === TILE.SD_C || t === TILE.SD_O ||
+      t === TILE.DOWN || t === TILE.SDOWN
+    );
+  }
+
+  function drawWallGlyph(lvl, x, y){
+    const t = lvl.tiles[x][y];
+    if(t !== TILE.ROCK) return null;
+
+    const passN = isPassableTerrainForWalls(lvl, x, y-1);
+    const passS = isPassableTerrainForWalls(lvl, x, y+1);
+    const passW = isPassableTerrainForWalls(lvl, x-1, y);
+    const passE = isPassableTerrainForWalls(lvl, x+1, y);
+
+    const anyAdj = passN || passS || passW || passE;
+    if(!anyAdj) return ' ';
+
+    const vert = (passW || passE);
+    const horiz = (passN || passS);
+
+    if(vert && horiz) return '+';
+    if(vert) return '|';
+    if(horiz) return '–';
+    return ' ';
+  }
+
+  function torchHudText(){
+    const r = currentVisionRadius();
+    if(!game.torch.lit) return `Dark (${r})`;
+    if(game.torch.burnLeft > 0) return `Burn ${r} · ${game.torch.burnLeft}`;
+    const stepsLeft = Math.max(0, (r - VISION_DARK));
+    return `Dim ${r} · ${stepsLeft}`;
+  }
+
+  function renderHud(freeze=false){
+    const lvl = getLevel(game.depth);
+    const depthStr = `${String(game.depth).padStart(2,'0')}/${String(game.maxDepth).padStart(2,'0')}`;
+    const potionByType = countPotionsByType();
+    const potionCount = game.inv.potions.length;
+
+    const potBits = [];
+    if(potionByType[POTION.HEAL] > 0) potBits.push(`<span style="color:${POTION_COLOR[POTION.HEAL]};"><b>H</b>${potionByType[POTION.HEAL]}</span>`);
+    if(potionByType[POTION.POISON] > 0) potBits.push(`<span style="color:${POTION_COLOR[POTION.POISON]};"><b>P</b>${potionByType[POTION.POISON]}</span>`);
+    if(potionByType[POTION.INVIS] > 0) potBits.push(`<span style="color:${POTION_COLOR[POTION.INVIS]};"><b>I</b>${potionByType[POTION.INVIS]}</span>`);
+    if(potionByType[POTION.TRANSMUTE] > 0) potBits.push(`<span style="color:${POTION_COLOR[POTION.TRANSMUTE]};"><b>X</b>${potionByType[POTION.TRANSMUTE]}</span>`);
+    if(potionByType[POTION.INVINC] > 0) potBits.push(`<span style="color:${POTION_COLOR[POTION.INVINC]};"><b>V</b>${potionByType[POTION.INVINC]}</span>`);
+    if(potionByType[POTION.TELE] > 0) potBits.push(`<span style="color:${POTION_COLOR[POTION.TELE]};"><b>E</b>${potionByType[POTION.TELE]}</span>`);
+
+    // Drink mapping in this build:
+    // P = Heal, 0=Poison, 1=Invis, 2=Trans, 3=Invinc, 4=Tele
+    const potPills = [
+      `<span class="pill" style="border-color:${POTION_COLOR[POTION.POISON]};color:${POTION_COLOR[POTION.POISON]};"><b>0</b> Poison</span>`,
+      `<span class="pill" style="border-color:${POTION_COLOR[POTION.INVIS]};color:${POTION_COLOR[POTION.INVIS]};"><b>1</b> Invis</span>`,
+      `<span class="pill" style="border-color:${POTION_COLOR[POTION.TRANSMUTE]};color:${POTION_COLOR[POTION.TRANSMUTE]};"><b>2</b> Trans</span>`,
+      `<span class="pill" style="border-color:${POTION_COLOR[POTION.INVINC]};color:${POTION_COLOR[POTION.INVINC]};"><b>3</b> Invinc</span>`,
+      `<span class="pill" style="border-color:${POTION_COLOR[POTION.TELE]};color:${POTION_COLOR[POTION.TELE]};"><b>4</b> Tele</span>`
+    ];
+
+    const effects = [];
+    if(game.effects.poison > 0) effects.push(`<span class="tag" style="border-color:${POTION_COLOR[POTION.POISON]};color:${POTION_COLOR[POTION.POISON]};">POISON ${game.effects.poison}</span>`);
+    if(game.effects.invis > 0) effects.push(`<span class="tag" style="border-color:${POTION_COLOR[POTION.INVIS]};color:${POTION_COLOR[POTION.INVIS]};">INVIS ${game.effects.invis}</span>`);
+    if(game.effects.transmute > 0) effects.push(`<span class="tag" style="border-color:${POTION_COLOR[POTION.TRANSMUTE]};color:${POTION_COLOR[POTION.TRANSMUTE]};">TRANS ${game.effects.transmute}</span>`);
+    if(game.effects.invincible > 0) effects.push(`<span class="tag" style="border-color:${POTION_COLOR[POTION.INVINC]};color:${POTION_COLOR[POTION.INVINC]};">INVINC ${game.effects.invincible}</span>`);
+
+    $hud.innerHTML = `
+      <span class="hud-item title hud-logo">
+        <img src="dd_logo.jpg" alt="Dungeons Deep" />
+      </span>
+      <span class="hud-item muted">Lvl <b>${depthStr}</b></span>
+      <span class="hud-item muted">HP <b>${game.hp}</b>/<b>${game.hpMax}</b></span>
+      <span class="hud-item muted">ATK <b>${game.atk}</b> (${escapeHtml(game.weaponName)})</span>
+      <span class="hud-item muted">GOLD <b>${game.gold}</b></span>
+      <span class="hud-item muted">KEYS <b>${game.inv.keys}</b>/<b>${KEY_CAP}</b></span>
+      <span class="hud-item muted">TORCH <b>${game.inv.torches}</b>/<b>${TORCH_CAP}</b> · VISION <b>${torchHudText()}</b></span>
+      <span class="hud-item muted">POTS <b>${potionCount}</b>/<b>${POTION_CAP}</b>${potBits.length ? ` · ${potBits.join(' ')}` : ``}</span>
+      <span class="hud-item muted">DRINK <b>P</b> Heal · ${potPills.join(' ')}</span>
+      ${effects.length ? `<span class="hud-item muted">EFFECTS <span class="effects">${effects.join('')}</span></span>` : ``}
+    
+      ${DEBUG ? `
+        <div class="hud-debug">
+          <span><b>DEBUG</b></span>
+          <span>Depth: ${game.depth}</span>
+          <span>HP: ${game.hp}/${game.hpMax}</span>
+          <span>Potions: ${game.inv.potions.length}/${POTION_CAP}</span>
+          <span>Keys: ${game.inv.keys}/${KEY_CAP}</span>
+          <span>Torches: ${game.inv.torches}/${TORCH_CAP}</span>
+          <span>Fx: P${game.effects.poison} I${game.effects.invis} T${game.effects.transmute} V${game.effects.invincible}</span>
+        </div>
+      ` : ``}
+`;
+  }
+
+  function renderScreen(){
+    const lvl = getLevel(game.depth);
+    computeFov(lvl);
+
+    const px = lvl.player.x, py = lvl.player.y;
+    const vx0 = clamp(px - Math.floor(VIEW_W/2), 0, MAP_W - VIEW_W);
+    const vy0 = clamp(py - Math.floor(VIEW_H/2), 0, MAP_H - VIEW_H);
+
+    let out = "";
+    for(let y=vy0; y<vy0+VIEW_H; y++){
+      for(let x=vx0; x<vx0+VIEW_W; x++){
+        const seen = lvl.seen[x][y];
+        const vis = lvl.visible[x][y];
+
+        if(!seen){
+          out += spanChar(' ', COL.rock, false);
+          continue;
+        }
+
+        let glyph = null;
+        const t = lvl.tiles[x][y];
+
+        if(
+          t === TILE.DOOR_C || t === TILE.DOOR_O ||
+          t === TILE.LDOOR_C || t === TILE.LDOOR_O ||
+          t === TILE.SD_C || t === TILE.SD_O ||
+          t === TILE.DOWN || t === TILE.SDOWN
+        ){
+          glyph = t;
+        } else if(t === TILE.FLOOR){
+          glyph = TILE.FLOOR;
+        } else if(t === TILE.CORR){
+          glyph = TILE.CORR;
+        } else {
+          glyph = drawWallGlyph(lvl, x, y);
+        }
+
+        let color = baseColorFor(lvl, x, y, glyph);
+        const k = keyXY(x,y);
+
+        // Environment overlay (render-only; passable). Applied only on visible floor/corridor.
+        // NOTE: lvl.env stores an environment TYPE string ("water"/"slime"/"fire"/"mist"), not a glyph.
+        if(vis && lvl.env){
+          const et = lvl.env[x][y];
+          if(et && (t === TILE.FLOOR || t === TILE.CORR)){
+            glyph = ENV_GLYPH[et] || glyph;
+            color = ENV_COLOR[et] || color;
+          }
+        }
+
+        if(vis){
+          if(lvl.items.has(k)){
+            const it = lvl.items.get(k);
+            glyph = (it.type === ENT.POTION) ? ENT.POTION :
+                    (it.type === "__LOOSE_KEY__") ? 'k' :
+                    it.type;
+            color = (it.type === "__LOOSE_KEY__") ? COL.door : colorForEntity(it);
+          }
+          if(lvl.traps.has(k)){
+            const tr = lvl.traps.get(k);
+            if(tr.revealed){
+              glyph = ENT.TRAP;
+              color = COL.trap;
+            }
+          }
+          if(lvl.monsters.has(k)){
+            const m = lvl.monsters.get(k);
+            glyph = m.glyph;
+            color = MONSTER_COLOR[m.glyph] || COL.monster;
+          }
+          if(lvl.traders.has(k)){
+            glyph = ENT.TRADER;
+            color = COL.trader;
+          }
+          if(x===lvl.player.x && y===lvl.player.y){
+            glyph = ENT.PLAYER;
+            color = COL.player;
+          }
+        } else {
+          color = COL.dim;
+          if(lvl.traps.has(k) && lvl.traps.get(k).revealed){
+            glyph = ENT.TRAP;
+          }
+        }
+
+        out += spanChar(glyph, color, (!vis && seen));
+      }
+      out += "\n";
+    }
+
+    $screen.innerHTML = out;
+  }
+
+  function renderAll(freeze=false){
+    renderHud(freeze);
+    renderScreen();
+    renderPrompt();
+
+    // HUD end-state indicator via Reset button (no extra HUD clutter)
+    if(game.ended){
+      if(game.victory){
+        $restartBtn.classList.add('btn-win');
+        $restartBtn.classList.remove('btn-lose');
+        $restartBtn.textContent = 'Reset (Victory)';
+      }else{
+        $restartBtn.classList.add('btn-lose');
+        $restartBtn.classList.remove('btn-win');
+        $restartBtn.textContent = 'Reset (Defeat)';
+      }
+    }else{
+      $restartBtn.classList.remove('btn-win','btn-lose');
+      $restartBtn.textContent = 'Reset';
+    }
+  }
+
+  // ---------- INPUT ----------
+  function handleKey(e){
+    let k = e.key.toLowerCase();
+    // Arrow keys support
+    if(k === 'arrowup') k = 'w';
+    else if(k === 'arrowdown') k = 's';
+    else if(k === 'arrowleft') k = 'a';
+    else if(k === 'arrowright') k = 'd';
+
+
+    if(game.prompt && game.prompt.type === 'trade'){
+      const p = game.prompt;
+      if(k === 'a' || k === 'b'){
+        p.selection = (k === 'a') ? 'A' : 'B';
+        logMsg(`Selected ${(p.selection==='A') ? 'Potion' : 'Weapon upgrade'}.`);
+        renderAll();
+        return;
+      }
+    }
+
+    if(game.prompt && game.prompt.type === 'shrine'){
+      if(k === 'y'){ e.preventDefault(); resolveShrine(true); renderAll(); return; }
+      if(k === 'n'){ e.preventDefault(); resolveShrine(false); renderAll(); return; }
+    }
+
+    if(game.prompt && game.prompt.type === 'trade'){
+if(k === 'y'){
+        e.preventDefault();
+        resolveTrade(true);
+        renderAll();
+        return;
+      }
+      if(k === 'n'){
+        e.preventDefault();
+        resolveTrade(false);
+        renderAll();
+        return;
+      }
+ 
+    }
+
+    if(game.ended) return;
+
+    if(k === '>'){ e.preventDefault(); tryDescend(); return; }
+    if(k === 'p'){ e.preventDefault(); drinkHealingPotion(); return; }
+    if(k === '0'){ e.preventDefault(); drinkPotionType(POTION.POISON); return; }
+    if(k === '1'){ e.preventDefault(); drinkPotionType(POTION.INVIS); return; }
+    if(k === '2'){ e.preventDefault(); drinkPotionType(POTION.TRANSMUTE); return; }
+    if(k === '3'){ e.preventDefault(); drinkPotionType(POTION.INVINC); return; }
+    if(k === '4'){ e.preventDefault(); drinkPotionType(POTION.TELE); return; }
+    // Wait / Rest (turn passes without movement)
+    if(k === ' '){
+      e.preventDefault();
+      tryMove(0,0);
+      return;
+    }
+
+    if(!(k in DIRS)) return;
+
+    e.preventDefault();
+    const [dx,dy] = DIRS[k];
+    tryMove(dx,dy);
+  }
+
+  document.addEventListener('keydown', handleKey);
+  $restartBtn.addEventListener('click', newGame);
+
+  // ---------- START ----------
+  renderLegend();
+  newGame();
+})();
+</script>
+</body>
+</html>
